@@ -1,5 +1,8 @@
 name = "svu-web-player"
-pages_build_output_dir = "dist"
+compatibility_date = "2024-04-03"
+
+[assets]
+directory = "./dist"
 
 [vars]
 # Add any environment variables here
