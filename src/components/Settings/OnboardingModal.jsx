@@ -54,7 +54,7 @@ const OnboardingModal = () => {
     
     setLoading(true);
     try {
-      const data = await fetchApi(`term?val=${val}`);
+      const data = await fetchApi(`term?val=${encodeURIComponent(val)}`);
       setProgramsList(data);
     } catch(err) { setError(err.message); }
     setLoading(false);
