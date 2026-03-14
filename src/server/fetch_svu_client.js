@@ -27,13 +27,19 @@ export class FetchSvuClient {
       .join('; ');
   }
 
-  _updateCookies(setCookieHeader) {
-    if (!setCookieHeader) return;
-    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
-    cookies.forEach(c => {
-      const part = c.split(';')[0];
-      const [name, value] = part.split('=');
-      if (name && value) this.cookies.set(name.trim(), value.trim());
+  _updateCookies(header) {
+    if (!header) return;
+    // In many environments, header can be a comma-separated string or an array
+    const parts = Array.isArray(header) ? header : header.split(/,(?=[^;]*=)/);
+    
+    parts.forEach(c => {
+      const cookiePart = c.trim().split(';')[0];
+      const eqIdx = cookiePart.indexOf('=');
+      if (eqIdx > 0) {
+        const name = cookiePart.substring(0, eqIdx).trim();
+        const value = cookiePart.substring(eqIdx + 1).trim();
+        if (name) this.cookies.set(name, value);
+      }
     });
   }
 
