@@ -9,6 +9,7 @@ import AudioExtractor from '../../core/AudioExtractor';
 import ffmpegManager from '../../core/FfmpegManager';
 import { withRetry } from '../../core/utils';
 import localforage from 'localforage';
+import Swal from 'sweetalert2';
 
 const formatTime = (seconds) => {
   if (isNaN(seconds)) return '0:00';
@@ -53,6 +54,25 @@ const CustomPlayer = ({ fileInfo }) => {
     
     const initPlayer = async () => {
       setLoading(true);
+      
+      // Informative alert about processing power
+      const hasShownNotice = sessionStorage.getItem('svu_notice_shown');
+      if (!hasShownNotice) {
+        Swal.fire({
+          title: 'تجهيز المحاضرة',
+          text: 'عملية استخراج الصوت وتجهيز الإطارات تعتمد على قدرات جهازك، لن تستغرق هذه العملية سوى لحظات بسيطة.',
+          icon: 'info',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 5000,
+          timerProgressBar: true,
+          background: document.documentElement.classList.contains('dark') ? '#1a1a1a' : '#fff',
+          color: document.documentElement.classList.contains('dark') ? '#fff' : '#000',
+        });
+        sessionStorage.setItem('svu_notice_shown', 'true');
+      }
+
       try {
         let buffer;
         if (fileInfo.localFile) {
