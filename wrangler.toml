@@ -6,8 +6,3 @@ directory = "./dist"
 
 [vars]
 # Add any environment variables here
-
-[[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200

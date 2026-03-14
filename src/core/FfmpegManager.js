@@ -1,6 +1,4 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import coreURL from '@ffmpeg/core?url';
-import wasmURL from '@ffmpeg/core/wasm?url';
 
 class FfmpegManager {
   constructor() {
@@ -14,15 +12,16 @@ class FfmpegManager {
       return;
     }
     
-    console.log("[FfmpegManager] Loading FFmpeg WebAssembly core from local node_modules...");
+    console.log("[FfmpegManager] Loading FFmpeg WebAssembly core from CDN...");
     try {
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/esm';
         this.ffmpeg.on('log', ({ message }) => {
           console.log(`[FFmpeg-Core] ${message}`);
         });
 
         await this.ffmpeg.load({
-          coreURL,
-          wasmURL,
+          coreURL: `${baseURL}/ffmpeg-core.js`,
+          wasmURL: `${baseURL}/ffmpeg-core.wasm`,
         });
 
         this.isLoaded = true;
