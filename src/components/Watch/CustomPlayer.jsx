@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Settings, Download, Loader2, RotateCcw } from 'lucide-react';
 import { usePlayerStore } from '../../store/usePlayerStore';
 import { useExportStore } from '../../store/useExportStore';
@@ -8,8 +8,17 @@ import SmartCropper from '../../core/SmartCropper';
 import AudioExtractor from '../../core/AudioExtractor';
 import ffmpegManager from '../../core/FfmpegManager';
 import { withRetry } from '../../core/utils';
-import localforage from 'localforage';
 import Swal from 'sweetalert2';
+import {
+  getAudioCacheKey,
+  getLectureStorageId,
+  getManagedItem,
+  getThumbnailCacheKey,
+  pruneStorageToLimit,
+  removeManagedItem,
+  setManagedItem,
+  touchManagedKeys,
+} from '../../lib/storageManager';
 
 const formatTime = (seconds) => {
   if (isNaN(seconds)) return '0:00';
@@ -31,12 +40,15 @@ const CustomPlayer = ({ fileInfo }) => {
   const cropperRef = useRef(null);
   const cropBoundsRef = useRef(null);
   const audioUrlRef = useRef(null);
+  const audioBlobRef = useRef(null);
+  const fullAudioBlobPromiseRef = useRef(null);
+  const lastFrameDrawnRef = useRef(-1);
   
   const { 
     isPlaying, setPlaying, togglePlay, 
     currentTime, setTime, duration, setDuration,
     volume, setVolume, isFullscreen, setFullscreen,
-    isLoading, setLoading
+    isLoading, setLoading, setCurrentFileMeta
   } = usePlayerStore();
 
   const { addExportTask, updateExportProgress, completeExport, failExport } = useExportStore();
@@ -50,6 +62,17 @@ const CustomPlayer = ({ fileInfo }) => {
   const [isAudioProcessing, setIsAudioProcessing] = useState(false);
   const controlsTimeoutRef = useRef(null);
 
+  const buildPlayableAudioBlob = async (chunks, targetDurationMs) => {
+    const trueSpeechWav = AudioExtractor.buildTrueSpeechWav(chunks);
+    const decodedPcmWav = await withRetry(
+      () => ffmpegManager.decodeTrueSpeechToPcmWav(trueSpeechWav),
+      3,
+      1000
+    );
+    const playableAudio = AudioExtractor.buildTimedPcmWav(chunks, decodedPcmWav, targetDurationMs) ?? decodedPcmWav;
+    return new Blob([playableAudio], { type: 'audio/wav' });
+  };
+
   const setAudioSource = (url) => {
     if (!audioRef.current) return;
 
@@ -61,12 +84,80 @@ const CustomPlayer = ({ fileInfo }) => {
     audioRef.current.src = url;
   };
 
+  const setAudioBlobSource = useEffectEvent((blob) => {
+    if (!(blob instanceof Blob)) return;
+    audioBlobRef.current = blob;
+    setAudioSource(URL.createObjectURL(blob));
+  });
+
+  const resolveExportAudioSource = async () => {
+    if (fullAudioBlobPromiseRef.current) {
+      try {
+        return await fullAudioBlobPromiseRef.current;
+      } catch (error) {
+        console.warn('Falling back to current audio blob for export', error);
+      }
+    }
+
+    if (audioBlobRef.current instanceof Blob) {
+      return audioBlobRef.current;
+    }
+
+    return audioRef.current?.src || null;
+  };
+
+  const renderUpToTime = useCallback((targetMs) => {
+    const parser = parserRef.current;
+    if (!parser) return;
+    
+    if (targetMs < (parser.frameIndex[lastFrameDrawnRef.current]?.timestamp || 0)) {
+      rendererRef.current.clearScale();
+      lastFrameDrawnRef.current = -1;
+    }
+
+    try {
+        let frameDrew = false;
+        let targetFrame = lastFrameDrawnRef.current;
+        while (targetFrame + 1 < parser.totalFrames && 
+               parser.frameIndex[targetFrame + 1].timestamp <= targetMs) {
+           targetFrame++;
+           const tiles = parser.getFrameTiles(targetFrame);
+           rendererRef.current.renderFrame(tiles, parser.palette);
+           frameDrew = true;
+        }
+
+        if (frameDrew && cropperRef.current) {
+           const shouldUpdateCrop = (cropperRef.current.framesAnalyzed < cropperRef.current.warmupFrames || targetFrame % 30 === 0);
+           if (shouldUpdateCrop) {
+              const imageData = rendererRef.current.ctx.getImageData(0, 0, parser.screenWidth, parser.screenHeight);
+              const expanded = cropperRef.current.updateBounds(imageData);
+              if (expanded || !cropBoundsRef.current) {
+                 cropBoundsRef.current = cropperRef.current.getBounds();
+              }
+           }
+           rendererRef.current.flush(cropBoundsRef.current);
+        }
+        lastFrameDrawnRef.current = targetFrame;
+    } catch (err) {
+        console.error("خطأ في الرسم", err);
+    }
+  }, []);
+
+  const syncVideoToAudio = useEffectEvent(() => {
+    if (!audioRef.current || !parserRef.current || !isPlaying) return;
+    const currentAudioTime = audioRef.current.currentTime;
+    setTime(currentAudioTime);
+    renderUpToTime(currentAudioTime * 1000);
+    rafRef.current = requestAnimationFrame(syncVideoToAudio);
+  });
+
   useEffect(() => {
     let isMounted = true;
     const audioElement = audioRef.current;
     
     const initPlayer = async () => {
       setLoading(true);
+      setCurrentFileMeta(fileInfo);
       
       // Informative alert about processing power
       const hasShownNotice = sessionStorage.getItem('svu_notice_shown');
@@ -88,6 +179,8 @@ const CustomPlayer = ({ fileInfo }) => {
 
       try {
         let buffer;
+        const lectureId = getLectureStorageId(fileInfo);
+        await touchManagedKeys([lectureId]);
         if (fileInfo.localFile) {
           setLoadingText('قراءة الملف المحلي...');
           buffer = await fileInfo.localFile.arrayBuffer();
@@ -114,71 +207,73 @@ const CustomPlayer = ({ fileInfo }) => {
         setDuration(parser.durationMs / 1000);
 
         if (parser.audioChunks.length > 0) {
-           setLoadingText('تجهيز الصوت...');
-           const fileId = fileInfo.id || fileInfo.filename || fileInfo.name;
-           const cacheKey = `audio_pcm_timed_v2_${fileId}`;
-           
-           try {
-             const cachedAudioBlob = await localforage.getItem(cacheKey);
-             if (cachedAudioBlob instanceof Blob && isMounted) {
-               setAudioSource(URL.createObjectURL(cachedAudioBlob));
-             } else {
-               const buildPlayableAudio = async (chunks, targetDurationMs) => {
-                 const trueSpeechWav = AudioExtractor.buildTrueSpeechWav(chunks);
-                 const decodedPcmWav = await withRetry(
-                   () => ffmpegManager.decodeTrueSpeechToPcmWav(trueSpeechWav),
-                   3,
-                   1000
-                 );
+          setLoadingText('تجهيز الصوت...');
+          const cacheKey = getAudioCacheKey(lectureId);
 
-                 return AudioExtractor.buildTimedPcmWav(chunks, decodedPcmWav, targetDurationMs) ?? decodedPcmWav;
-               };
+          try {
+            const cachedAudioBlob = await getManagedItem(cacheKey);
+            if (cachedAudioBlob instanceof Blob) {
+              fullAudioBlobPromiseRef.current = Promise.resolve(cachedAudioBlob);
+              if (isMounted) {
+                setAudioBlobSource(cachedAudioBlob);
+              }
+              setIsAudioProcessing(false);
+            } else {
+              const FAST_START_CHUNKS = 400;
+              const needsBackgroundPass = parser.audioChunks.length > FAST_START_CHUNKS;
+              const initialChunks = needsBackgroundPass
+                ? parser.audioChunks.slice(0, FAST_START_CHUNKS)
+                : parser.audioChunks;
+              const initialDurationMs = needsBackgroundPass
+                ? initialChunks[initialChunks.length - 1]?.timestamp ?? parser.durationMs
+                : parser.durationMs;
+              const initialBlob = await buildPlayableAudioBlob(initialChunks, initialDurationMs);
 
-               const FAST_START_CHUNKS = 400;
-               const needsBackgroundPass = parser.audioChunks.length > FAST_START_CHUNKS;
-               const initialChunks = needsBackgroundPass
-                 ? parser.audioChunks.slice(0, FAST_START_CHUNKS)
-                 : parser.audioChunks;
-               const initialDurationMs = needsBackgroundPass
-                 ? initialChunks[initialChunks.length - 1]?.timestamp ?? parser.durationMs
-                 : parser.durationMs;
-               const initialPcmWav = await buildPlayableAudio(initialChunks, initialDurationMs);
-               const initialBlob = new Blob([initialPcmWav.buffer], { type: 'audio/wav' });
-               
-               if (isMounted) {
-                 setAudioSource(URL.createObjectURL(initialBlob));
-               }
+              if (isMounted) {
+                setAudioBlobSource(initialBlob);
+              }
 
-                if (needsBackgroundPass) {
-                  setTimeout(async () => {
+              if (needsBackgroundPass) {
+                setIsAudioProcessing(true);
+                const fullAudioBlobPromise = (async () => {
+                  const fullBlob = await buildPlayableAudioBlob(parser.audioChunks, parser.durationMs);
+                  await setManagedItem(cacheKey, fullBlob);
+                  await pruneStorageToLimit({ activeLectureId: lectureId });
+                  return fullBlob;
+                })();
+
+                fullAudioBlobPromiseRef.current = fullAudioBlobPromise;
+
+                setTimeout(async () => {
                   try {
-                     const fullPcmWav = await buildPlayableAudio(parser.audioChunks, parser.durationMs);
-                     const fullBlob = new Blob([fullPcmWav.buffer], { type: 'audio/wav' });
-                     await localforage.setItem(cacheKey, fullBlob);
+                    const fullBlob = await fullAudioBlobPromise;
 
-                   if (audioRef.current && isMounted) {
-                     const currentPos = audioRef.current.currentTime;
-                     const wasPlaying = !audioRef.current.paused;
-                      setAudioSource(URL.createObjectURL(fullBlob));
+                    if (audioRef.current && isMounted) {
+                      const currentPos = audioRef.current.currentTime;
+                      const wasPlaying = !audioRef.current.paused;
+                      setAudioBlobSource(fullBlob);
                       audioRef.current.currentTime = currentPos;
-                     if (wasPlaying) audioRef.current.play().catch(() => {});
-                   }
-                   if (isMounted) setIsAudioProcessing(false);
-                 } catch (err) {
-                   console.error("فشل معالجة الصوت في الخلفية", err);
-                   if (isMounted) setIsAudioProcessing(false);
+                      if (wasPlaying) audioRef.current.play().catch(() => {});
+                    }
+
+                    if (isMounted) setIsAudioProcessing(false);
+                  } catch (err) {
+                    console.error("فشل معالجة الصوت في الخلفية", err);
+                    if (isMounted) setIsAudioProcessing(false);
                   }
-                  }, 100);
-                  setIsAudioProcessing(true);
-                } else {
-                  await localforage.setItem(cacheKey, initialBlob);
-                  setIsAudioProcessing(false);
-                }
-             }
-           } catch (e) {
-             console.warn("فشل حفظ الصوت في الذاكرة", e);
-             setIsAudioProcessing(false);
-           }
+                }, 100);
+              } else {
+                await setManagedItem(cacheKey, initialBlob);
+                await pruneStorageToLimit({ activeLectureId: lectureId });
+                fullAudioBlobPromiseRef.current = Promise.resolve(initialBlob);
+                setIsAudioProcessing(false);
+              }
+            }
+          } catch (e) {
+            console.warn("فشل حفظ الصوت في الذاكرة", e);
+            fullAudioBlobPromiseRef.current = null;
+            setIsAudioProcessing(false);
+          }
         }
 
         setLoading(false);
@@ -187,8 +282,8 @@ const CustomPlayer = ({ fileInfo }) => {
         setTimeout(async () => {
           if (canvasRef.current && isMounted) {
              const thumbBlob = await new Promise(resolve => canvasRef.current.toBlob(resolve, 'image/jpeg', 0.5));
-             const fileId = fileInfo.id || fileInfo.filename || fileInfo.name;
-             await localforage.setItem(`thumb_${fileId}`, thumbBlob);
+             await setManagedItem(getThumbnailCacheKey(lectureId), thumbBlob);
+             await pruneStorageToLimit({ activeLectureId: lectureId });
           }
         }, 1000);
 
@@ -201,20 +296,25 @@ const CustomPlayer = ({ fileInfo }) => {
 
     return () => {
       isMounted = false;
+      setCurrentFileMeta(null);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (audioElement) audioElement.pause();
       if (audioUrlRef.current?.startsWith('blob:')) {
         URL.revokeObjectURL(audioUrlRef.current);
         audioUrlRef.current = null;
       }
+      audioBlobRef.current = null;
+      fullAudioBlobPromiseRef.current = null;
     };
-  }, [fileInfo, retryCount]);
+  }, [fileInfo, renderUpToTime, retryCount, setCurrentFileMeta, setDuration, setLoading]);
 
   const handleReload = async () => {
-    const fileId = fileInfo.id || fileInfo.filename || fileInfo.name;
+    const lectureId = getLectureStorageId(fileInfo);
     setLoadingText('جاري مسح الذاكرة المؤقتة...');
-    await localforage.removeItem(`audio_pcm_timed_v2_${fileId}`).catch(() => {});
-    await localforage.removeItem(`thumb_${fileId}`).catch(() => {});
+    await removeManagedItem(getAudioCacheKey(lectureId)).catch(() => {});
+    await removeManagedItem(getThumbnailCacheKey(lectureId)).catch(() => {});
+    audioBlobRef.current = null;
+    fullAudioBlobPromiseRef.current = null;
     setRetryCount(prev => prev + 1);
   };
 
@@ -228,58 +328,11 @@ const CustomPlayer = ({ fileInfo }) => {
       audioRef.current.pause();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     }
-  }, [isPlaying, playbackRate]);
+  }, [isPlaying, playbackRate, setPlaying]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
-
-  let lastFrameDrawn = -1;
-
-  const syncVideoToAudio = () => {
-    if (!audioRef.current || !parserRef.current || !isPlaying) return;
-    const currentAudioTime = audioRef.current.currentTime;
-    setTime(currentAudioTime);
-    renderUpToTime(currentAudioTime * 1000);
-    rafRef.current = requestAnimationFrame(syncVideoToAudio);
-  };
-
-  const renderUpToTime = (targetMs) => {
-    const parser = parserRef.current;
-    if (!parser) return;
-    
-    if (targetMs < (parser.frameIndex[lastFrameDrawn]?.timestamp || 0)) {
-      rendererRef.current.clearScale();
-      lastFrameDrawn = -1;
-    }
-
-    try {
-        let frameDrew = false;
-        let targetFrame = lastFrameDrawn;
-        while (targetFrame + 1 < parser.totalFrames && 
-               parser.frameIndex[targetFrame + 1].timestamp <= targetMs) {
-           targetFrame++;
-           const tiles = parser.getFrameTiles(targetFrame);
-           rendererRef.current.renderFrame(tiles, parser.palette);
-           frameDrew = true;
-        }
-
-        if (frameDrew && cropperRef.current) {
-           const shouldUpdateCrop = (cropperRef.current.framesAnalyzed < cropperRef.current.warmupFrames || targetFrame % 30 === 0);
-           if (shouldUpdateCrop) {
-              const imageData = rendererRef.current.ctx.getImageData(0, 0, parser.screenWidth, parser.screenHeight);
-              const expanded = cropperRef.current.updateBounds(imageData);
-              if (expanded || !cropBoundsRef.current) {
-                 cropBoundsRef.current = cropperRef.current.getBounds();
-              }
-           }
-           rendererRef.current.flush(cropBoundsRef.current);
-        }
-        lastFrameDrawn = targetFrame;
-    } catch (err) {
-        console.error("خطأ في الرسم", err);
-    }
-  };
 
   const handleSeek = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -323,9 +376,10 @@ const CustomPlayer = ({ fileInfo }) => {
     setTimeout(() => setExportToast(false), 4000);
 
     try {
+      const audioSource = await resolveExportAudioSource();
       const finalUrl = await Exporter.exportToMp4(
         parserRef.current, 
-        audioRef.current?.src,
+        audioSource,
         (progress) => updateExportProgress(taskId, progress),
         controller.signal
       );

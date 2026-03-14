@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import localforage from 'localforage';
+import { Trash2 } from 'lucide-react';
+import { getLectureStorageId, getManagedItem, getThumbnailCacheKey } from '../../lib/storageManager';
 
 const getGradientFromString = (str) => {
   if (!str) return 'from-blue-600 to-purple-600';
@@ -16,7 +17,7 @@ const getGradientFromString = (str) => {
   return colors[charCode % colors.length];
 };
 
-const VideoCard = ({ video, onSelect }) => {
+const VideoCard = ({ video, onSelect, onDelete }) => {
   const [thumbnailUrl, setThumbnailUrl] = useState(null);
   const gradient = getGradientFromString(video.subject);
 
@@ -24,8 +25,7 @@ const VideoCard = ({ video, onSelect }) => {
     let objectUrl = null;
 
     const loadThumb = async () => {
-      const fileId = video.id || video.filename || video.name;
-      const thumbBlob = await localforage.getItem(`thumb_${fileId}`);
+      const thumbBlob = await getManagedItem(getThumbnailCacheKey(getLectureStorageId(video)));
       if (thumbBlob) {
         objectUrl = URL.createObjectURL(thumbBlob);
         setThumbnailUrl(objectUrl);
@@ -43,6 +43,18 @@ const VideoCard = ({ video, onSelect }) => {
       onClick={() => onSelect(video)}
     >
       <div className={`relative w-full aspect-video sm:rounded-xl bg-gradient-to-br ${gradient} overflow-hidden shadow-md sm:shadow-lg group-hover:shadow-primary/20 transition-all duration-300 ring-1 ring-black/5 dark:ring-white/5`}>
+        {typeof onDelete === 'function' && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete(video);
+            }}
+            className="absolute top-2 left-2 z-20 flex h-9 w-9 items-center justify-center rounded-xl bg-black/70 text-white opacity-0 transition-all hover:bg-red-500 group-hover:opacity-100"
+            title="حذف الملف"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
         
         {thumbnailUrl ? (
           <img src={thumbnailUrl} alt={video.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -59,13 +71,13 @@ const VideoCard = ({ video, onSelect }) => {
         {!thumbnailUrl && (
           <div className="absolute inset-0 p-3 md:p-4 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
             <div className="text-white">
-              <h3 className="text-sm md:text-xl font-bold line-clamp-2 leading-tight drop-shadow-md">{video.title}</h3>
-              <p className="text-xs md:text-sm opacity-90 font-medium drop-shadow-md line-clamp-1">{video.subject}</p>
+              <h3 className="text-sm md:text-xl font-bold line-clamp-2 leading-tight drop-shadow-md" dir="auto">{video.title}</h3>
+              <p className="text-xs md:text-sm opacity-90 font-medium drop-shadow-md line-clamp-1" dir="auto">{video.subject}</p>
             </div>
           </div>
         )}
 
-        <div className="absolute bottom-1.5 right-1.5 md:bottom-2 md:right-2 bg-black/80 backdrop-blur-md text-white text-[9px] md:text-[10px] font-bold px-1.5 md:px-2 py-0.5 rounded md:rounded-md border border-white/10 uppercase tracking-tighter">
+        <div className="absolute bottom-1.5 right-1.5 md:bottom-2 md:right-2 bg-black/80 backdrop-blur-md text-white text-[9px] md:text-[10px] font-bold px-1.5 md:px-2 py-0.5 rounded md:rounded-md border border-white/10 uppercase tracking-tighter" dir="auto">
           {video.duration || 'تسجيل'}
         </div>
       </div>
@@ -78,13 +90,13 @@ const VideoCard = ({ video, onSelect }) => {
           <h4 className="text-text-light-primary dark:text-text-dark-primary font-bold line-clamp-2 leading-tight group-hover:text-primary transition-colors text-sm md:text-base" dir="auto">
             {video.title}
           </h4>
-          <p className="text-text-light-secondary dark:text-text-dark-secondary text-xs mt-1 md:mt-1.5 font-medium flex items-center gap-1 line-clamp-1">
+          <p className="text-text-light-secondary dark:text-text-dark-secondary text-xs mt-1 md:mt-1.5 font-medium flex items-center gap-1 line-clamp-1" dir="auto">
             {video.teacher || 'دكتور غير معروف'}
           </p>
           <div className="flex items-center gap-1.5 text-text-light-secondary dark:text-text-dark-secondary text-[10px] md:text-[11px] mt-0.5 md:mt-1 font-medium opacity-70">
-            <span>{video.views || '0'} مشاهدة</span>
+            <span dir="auto">{video.views || '0'} مشاهدة</span>
             <span className="w-1 h-1 rounded-full bg-current opacity-30"></span>
-            <span>{video.date || 'مؤخراً'}</span>
+            <span dir="auto">{video.date || 'مؤخراً'}</span>
           </div>
         </div>
       </div>
@@ -92,7 +104,7 @@ const VideoCard = ({ video, onSelect }) => {
   );
 };
 
-const VideoGrid = ({ videos, onVideoSelect }) => {
+const VideoGrid = ({ videos, onVideoSelect, onDeleteVideo }) => {
   if (!videos || videos.length === 0) {
     return (
       <div className="w-full text-center py-20 text-text-light-secondary dark:text-text-dark-secondary">
@@ -104,7 +116,7 @@ const VideoGrid = ({ videos, onVideoSelect }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-6 sm:gap-x-4 sm:gap-y-10 -mx-3 sm:mx-0">
       {videos.map((vid, i) => (
-        <VideoCard key={vid.id || i} video={vid} onSelect={onVideoSelect} />
+        <VideoCard key={vid.id || i} video={vid} onSelect={onVideoSelect} onDelete={onDeleteVideo} />
       ))}
     </div>
   );

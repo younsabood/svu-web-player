@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import localforage from 'localforage';
 import { AlertCircle, Loader2, MonitorPlay, Search, Settings2 } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { fetchSvu } from '../../lib/svuApi';
+import { createSessionPlaceholder } from '../../core/sessionMetadata';
+import { getManagedItem } from '../../lib/storageManager';
 
 const selectClassBase =
   'w-full appearance-none rounded-2xl border border-black/10 bg-white px-4 py-4 text-sm font-bold text-text-light-primary outline-none transition-all hover:border-primary/30 focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-[#171717] dark:text-white';
@@ -157,8 +158,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
       }
 
       const downloadLink = data.find((item) => item.filename?.endsWith('.lrec')) || data[0];
-      if (typeof localforage.ready === 'function') await localforage.ready();
-      const cachedBlob = await localforage.getItem(downloadLink.filename);
+      const cachedBlob = await getManagedItem(downloadLink.filename);
 
       if (cachedBlob) {
         onVideoSelect({
@@ -239,7 +239,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
           </div>
 
           <div className="rounded-2xl bg-black/5 px-4 py-3 text-sm font-bold text-text-light-secondary dark:bg-white/5 dark:text-text-dark-secondary">
-            {term} • {program}
+            <span dir="auto">{term} • {program}</span>
           </div>
         </div>
 
@@ -305,11 +305,11 @@ const SvuBrowser = ({ onVideoSelect }) => {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sessions.map((session) => (
+              {sessions.map((session, index) => (
                 <button
                   key={session.id}
                   onClick={() => handleSessionClick(session)}
-                  className={`rounded-[1.5rem] border p-4 text-right transition-all active:scale-[0.98] ${
+                  className={`rounded-[1.5rem] border p-4 text-start transition-all active:scale-[0.98] ${
                     selectedSession?.id === session.id
                       ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
                       : 'border-black/5 bg-black/5 hover:border-primary/30 hover:bg-black/10 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'
@@ -317,9 +317,9 @@ const SvuBrowser = ({ onVideoSelect }) => {
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-black text-primary">{session.date}</div>
+                      <div className="text-sm font-black text-primary" dir="ltr">{session.date}</div>
                       <div className="mt-1 text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary">
-                        ترتيب الجلسة: {session.order}
+                        الجلسة: {createSessionPlaceholder(session, index)}
                       </div>
                     </div>
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black/5 text-primary dark:bg-white/10">
@@ -327,8 +327,8 @@ const SvuBrowser = ({ onVideoSelect }) => {
                     </div>
                   </div>
 
-                  <div className="font-black">{session.class_name}</div>
-                  <div className="mt-1 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
+                  <div className="font-black" dir="auto">{session.class_name}</div>
+                  <div className="mt-1 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary" dir="auto">
                     {session.tutor}
                   </div>
                 </button>

@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import CustomPlayer from './CustomPlayer';
+import {
+  getLectureStorageId,
+  getManagedItem,
+  pruneStorageToLimit,
+  setManagedItem,
+} from '../../lib/storageManager';
 
 const Watch = ({ file }) => {
   const [playableFile, setPlayableFile] = useState(null);
@@ -20,22 +26,21 @@ const Watch = ({ file }) => {
     if (file._proxyDownloadUrl) {
       const controller = new AbortController();
       const signal = controller.signal;
+      const lectureId = getLectureStorageId(file);
 
       const fetchAndCache = async () => {
         try {
           if (signal.aborted) return;
           setDownloadProgress({ text: 'جاري بدء التحميل...', perc: 0 });
-          
-          const localforage = (await import('localforage')).default;
-          if (typeof localforage.ready === 'function') await localforage.ready();
-          
-          const cacheKey = file.filename || file.name || file.id || 'unknown_file';
-          const cachedBlob = await localforage.getItem(cacheKey);
+
+          const cacheKey = lectureId;
+          const cachedBlob = await getManagedItem(cacheKey);
           
           if (cachedBlob) {
             if (signal.aborted) return;
             setPlayableFile({
               ...file,
+              storageId: lectureId,
               localFile: new File([cachedBlob], cacheKey)
             });
             setDownloadProgress(null);
@@ -77,10 +82,12 @@ const Watch = ({ file }) => {
 
           setDownloadProgress({ text: 'جاري الحفظ في الذاكرة...', perc: 100 });
           const finalBlob = new Blob(chunks);
-          await localforage.setItem(cacheKey, finalBlob);
+          await setManagedItem(cacheKey, finalBlob);
+          await pruneStorageToLimit({ activeLectureId: lectureId });
 
           setPlayableFile({
             ...file,
+            storageId: lectureId,
             localFile: new File([finalBlob], cacheKey)
           });
           setDownloadProgress(null);

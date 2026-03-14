@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { fetchSvu } from '../../lib/svuApi';
+import { getManagedItem } from '../../lib/storageManager';
+import { createSessionPlaceholder, resolveSessionTitles } from '../../core/sessionMetadata';
 
 const getGradientFromString = (text) => {
   if (!text) return 'from-blue-600 to-cyan-500';
@@ -29,7 +31,7 @@ const getGradientFromString = (text) => {
 const QuickStat = ({ label, value }) => (
   <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-xl">
     <div className="text-xs font-black uppercase tracking-[0.18em] text-white/60">{label}</div>
-    <div className="mt-2 text-2xl font-black text-white">{value}</div>
+    <div className="mt-2 text-2xl font-black text-white" dir="auto">{value}</div>
   </div>
 );
 
@@ -54,9 +56,11 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
         const sessionsCacheKey = `svu_class_${subscription.classId}`;
         const enrichedCacheKey = `svu_enriched_${subscription.classId}`;
         let sessionPayload = null;
+        let enrichedCache = [];
 
         if (!isRefresh) {
           sessionPayload = await localforage.getItem(sessionsCacheKey);
+          enrichedCache = await localforage.getItem(enrichedCacheKey);
         }
 
         if (!sessionPayload) {
@@ -76,45 +80,54 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
           throw new Error('تعذر تحميل جلسات هذه الشعبة.');
         }
 
-        const initialSessions = sessionPayload.data.map((session) => ({
-          id: session.id,
-          title: `جلسة ${session.order}`,
-          displayTitle: `جلسة ${session.order}`,
-          subject: subscription.courseName,
-          teacher: subscription.tutorName,
-          date: session.date,
-          _rawSession: {
-            ...session,
-            term,
-            program,
-            course_id: subscription.courseId,
-            tutor: subscription.tutorId,
-            class_name: subscription.classId,
-          },
-        }));
+        const cachedSessionsById = new Map(
+          Array.isArray(enrichedCache)
+            ? enrichedCache.map((item) => [item.id, item])
+            : []
+        );
 
-        if (!cancelled && !isRefresh) {
-          const enrichedCache = await localforage.getItem(enrichedCacheKey);
-          if (enrichedCache && enrichedCache.length === initialSessions.length) {
-            setSessions(enrichedCache);
-            setLoading(false);
-            return;
-          }
-        }
+        const initialSessions = sessionPayload.data.map((session, index) => {
+          const placeholderTitle = createSessionPlaceholder(session, index);
+          const cachedSession = cachedSessionsById.get(session.id);
+          const { title, displayTitle } = resolveSessionTitles({
+            session,
+            index,
+            title: cachedSession?.title || cachedSession?.displayTitle,
+            fallbackTitle: placeholderTitle,
+          });
+
+          return {
+            id: session.id,
+            title,
+            displayTitle,
+            placeholderTitle,
+            subject: subscription.courseName,
+            teacher: subscription.tutorName,
+            date: session.date,
+            _rawSession: {
+              ...session,
+              term,
+              program,
+              course_id: subscription.courseId,
+              tutor: subscription.tutorId,
+              class_name: subscription.classId,
+            },
+          };
+        });
 
         if (!cancelled) {
           setSessions(initialSessions);
           setLoading(false);
         }
 
+        await localforage.setItem(enrichedCacheKey, initialSessions);
+
         const enrichedSessions = [...initialSessions];
         let hasChanges = false;
+        const metadataResults = await Promise.allSettled(
+          initialSessions.map(async (currentVideo, index) => {
+            if (cancelled) return null;
 
-        for (let index = 0; index < initialSessions.length; index += 1) {
-          if (cancelled) return;
-
-          const currentVideo = initialSessions[index];
-          try {
             const linkCacheKey = `svu_links_${currentVideo.id}`;
             let linkPayload = null;
 
@@ -128,23 +141,45 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
               await localforage.setItem(linkCacheKey, linkPayload);
             }
 
-            if (linkPayload?.success && linkPayload.data?.length > 0) {
-              const bestLink = linkPayload.data.find((item) => item.link.includes('.lrec')) || linkPayload.data[0];
-              const nextTitle = bestLink.description || currentVideo.displayTitle;
-
-              if (enrichedSessions[index].title !== nextTitle) {
-                enrichedSessions[index] = {
-                  ...enrichedSessions[index],
-                  title: nextTitle,
-                  displayTitle: nextTitle,
-                };
-                hasChanges = true;
-              }
+            if (!linkPayload?.success || !linkPayload.data?.length) {
+              return null;
             }
-          } catch (metadataError) {
-            console.warn('Unable to enrich session metadata', metadataError);
+
+            const bestLink = linkPayload.data.find((item) => item.link.includes('.lrec')) || linkPayload.data[0];
+            return {
+              index,
+              ...resolveSessionTitles({
+                session: currentVideo._rawSession,
+                index,
+                title: bestLink.description,
+                fallbackTitle: currentVideo.placeholderTitle,
+              }),
+            };
+          })
+        );
+
+        metadataResults.forEach((result) => {
+          if (result.status !== 'fulfilled' || !result.value) {
+            if (result.status === 'rejected') {
+              console.warn('Unable to enrich session metadata', result.reason);
+            }
+            return;
           }
-        }
+
+          const { index, title, displayTitle } = result.value;
+          const existingSession = enrichedSessions[index];
+          if (
+            existingSession &&
+            (existingSession.title !== title || existingSession.displayTitle !== displayTitle)
+          ) {
+            enrichedSessions[index] = {
+              ...existingSession,
+              title,
+              displayTitle,
+            };
+            hasChanges = true;
+          }
+        });
 
         if (!cancelled && hasChanges) {
           setSessions([...enrichedSessions]);
@@ -183,13 +218,17 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
       }
 
       const bestLink = payload.data.find((item) => item.link.includes('.lrec')) || payload.data[0];
-      const finalTitle = bestLink.description || video.displayTitle;
-      const cachedBlob = await localforage.getItem(bestLink.filename);
+      const { title: finalTitle, displayTitle: finalDisplayTitle } = resolveSessionTitles({
+        title: bestLink.description,
+        fallbackTitle: video.placeholderTitle || video.displayTitle,
+      });
+      const cachedBlob = await getManagedItem(bestLink.filename);
 
       if (cachedBlob) {
         onVideoSelect({
           ...video,
           title: finalTitle,
+          displayTitle: finalDisplayTitle,
           filename: bestLink.filename,
           localFile: new File([cachedBlob], bestLink.filename),
         });
@@ -199,6 +238,7 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
       onVideoSelect({
         ...video,
         title: finalTitle,
+        displayTitle: finalDisplayTitle,
         _proxyDownloadUrl: bestLink.link,
         filename: bestLink.filename,
       });
@@ -255,16 +295,18 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
       <div className="mb-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-xl font-black text-white shadow-lg`}>
-            {subscription.tutorName.charAt(0)}
+            {(subscription.tutorName || 'S').charAt(0)}
           </div>
           <div>
-            <h2 className="flex items-center gap-2 text-xl font-black sm:text-2xl">
+            <h2 className="flex items-center gap-2 text-xl font-black sm:text-2xl" dir="auto">
               {subscription.courseName}
               <Sparkles size={16} className="text-primary" />
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
-              <span className="rounded-full bg-black/5 px-3 py-1 dark:bg-white/10">د. {subscription.tutorName}</span>
-              <span>{subscription.className}</span>
+              <span className="rounded-full bg-black/5 px-3 py-1 dark:bg-white/10">
+                د. <span dir="auto">{subscription.tutorName}</span>
+              </span>
+              <span dir="auto">{subscription.className}</span>
             </div>
           </div>
         </div>
@@ -275,7 +317,7 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
           <button
             key={video.id}
             onClick={() => handleCardClick(video)}
-            className="group w-full text-right"
+            className="group w-full text-start"
           >
             <div className={`relative mb-3 aspect-video overflow-hidden rounded-[1.75rem] bg-gradient-to-br ${gradient} ring-1 ring-black/5 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/20 dark:ring-white/5`}>
               <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }} />
@@ -290,13 +332,13 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
                 )}
               </div>
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent p-4">
-                <h3 className="line-clamp-2 text-lg font-black leading-tight text-white">{subscription.courseName}</h3>
+                <h3 className="line-clamp-2 text-lg font-black leading-tight text-white" dir="auto">{subscription.courseName}</h3>
               </div>
-              <div className="absolute right-3 top-3 rounded-full bg-black/55 px-2 py-1 text-[11px] font-black text-white">{video.date}</div>
+              <div className="absolute right-3 top-3 rounded-full bg-black/55 px-2 py-1 text-[11px] font-black text-white" dir="ltr">{video.date}</div>
             </div>
 
-            <h3 className="line-clamp-2 pr-1 text-sm font-black leading-6 transition-colors group-hover:text-primary sm:text-base">
-              {video.title.split(' - ')[1] || video.title}
+            <h3 className="line-clamp-2 pr-1 text-sm font-black leading-6 transition-colors group-hover:text-primary sm:text-base" dir="auto">
+              {video.displayTitle || video.title}
             </h3>
             <p className="mt-1 text-xs font-medium text-text-light-secondary dark:text-text-dark-secondary">جلسة متاحة الآن</p>
           </button>

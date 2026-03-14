@@ -14,6 +14,13 @@ import {
 } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useAcademicSetup } from './useAcademicSetup';
+import {
+  clearTemporaryStorage,
+  formatStorageSize,
+  getLectureStorageId,
+  getStorageStats,
+} from '../../lib/storageManager';
+import { usePlayerStore } from '../../store/usePlayerStore';
 
 const summaryCardClass =
   'rounded-2xl border border-black/5 bg-black/5 p-4 dark:border-white/10 dark:bg-white/5';
@@ -43,6 +50,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const isHydrated = useSettingsStore((state) => state.isHydrated);
   const setTerm = useSettingsStore((state) => state.setTerm);
   const setProgram = useSettingsStore((state) => state.setProgram);
+  const currentFileMeta = usePlayerStore((state) => state.currentFileMeta);
 
   const {
     terms,
@@ -65,6 +73,23 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const selectedTermLabel = terms.find((item) => item.value === localTerm)?.text || localTerm || 'غير محدد';
   const selectedProgramLabel =
     programs.find((item) => item.value === localProgram)?.text || localProgram || 'اختر برنامجًا';
+  const [storageStats, setStorageStats] = React.useState(null);
+  const [storageBusy, setStorageBusy] = React.useState(false);
+
+  const loadStorageStats = React.useCallback(async () => {
+    if (!isOpen || !isHydrated) return;
+
+    try {
+      const stats = await getStorageStats();
+      setStorageStats(stats);
+    } catch (statsError) {
+      console.error('Storage stats error:', statsError);
+    }
+  }, [isHydrated, isOpen]);
+
+  React.useEffect(() => {
+    loadStorageStats();
+  }, [loadStorageStats]);
 
   const handleSave = () => {
     if (!localTerm || !localProgram) {
@@ -85,6 +110,28 @@ const SettingsModal = ({ isOpen, onClose }) => {
     ) {
       await localforage.clear();
       window.location.reload();
+    }
+  };
+
+  const handleClearTemporaryData = async () => {
+    if (
+      !window.confirm(
+        'سيتم حذف الصوت المؤقت، الصور المصغرة، وبيانات الجلب المؤقتة فقط مع الإبقاء على المحاضرات المحفوظة وعدم لمس المحاضرة المفتوحة حالياً. هل تريد المتابعة؟'
+      )
+    ) {
+      return;
+    }
+
+    setStorageBusy(true);
+    try {
+      await clearTemporaryStorage({
+        preserveLectureIds: currentFileMeta ? [getLectureStorageId(currentFileMeta)] : [],
+      });
+      await loadStorageStats();
+    } catch (cleanupError) {
+      setError(`فشل تنظيف التخزين المؤقت: ${cleanupError.message}`);
+    } finally {
+      setStorageBusy(false);
     }
   };
 
@@ -146,6 +193,19 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   accent="text-svu-blue"
                 />
               </div>
+
+              {storageStats && (
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <SummaryCard icon={Database} label="الحجم المحلي" value={formatStorageSize(storageStats.totalBytes)} />
+                  <SummaryCard icon={Trash2} label="المؤقت" value={formatStorageSize(storageStats.temporaryBytes)} accent="text-orange-500" />
+                  <SummaryCard
+                    icon={Save}
+                    label="حد التخزين"
+                    value={`${formatStorageSize(storageStats.limitBytes)} / ${storageStats.lectureCount} محاضرة`}
+                    accent="text-emerald-500"
+                  />
+                </div>
+              )}
 
               {error && (
                 <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
@@ -246,6 +306,15 @@ const SettingsModal = ({ isOpen, onClose }) => {
                     </p>
                   </div>
                 </div>
+
+                <button
+                  onClick={handleClearTemporaryData}
+                  disabled={storageBusy}
+                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-orange-500/30 px-4 py-3.5 font-black text-orange-500 transition-colors hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 size={18} />
+                  {storageBusy ? 'جاري تنظيف الملفات المؤقتة...' : 'تنظيف الملفات المؤقتة فقط'}
+                </button>
 
                 <button
                   onClick={handleReset}

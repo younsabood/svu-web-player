@@ -49,6 +49,10 @@
     @apply bg-white text-slate-900 dark:bg-[#18181b] dark:text-slate-100 font-sans p-4;
   }
 
+  [dir="auto"] {
+    unicode-bidi: plaintext;
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;

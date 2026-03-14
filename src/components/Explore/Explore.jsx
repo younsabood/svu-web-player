@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import VideoGrid from '../Home/VideoGrid';
 import SvuBrowser from '../Home/SvuBrowser';
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, Trash2 } from 'lucide-react';
+import {
+  getLectureStorageId,
+  getManagedItem,
+  getStoredLectureSummaries,
+  removeLectureAssets,
+} from '../../lib/storageManager';
 
 const FilterPill = ({ label, active, onClick }) => (
   <button
@@ -22,29 +28,29 @@ const Explore = ({ onVideoSelect }) => {
   
   const filters = ['التنزيلات']; 
 
-  React.useEffect(() => {
-    const loadSaved = async () => {
-      try {
-        const localforage = (await import('localforage')).default;
-        if (typeof localforage.ready === 'function') await localforage.ready();
-        const keys = await localforage.keys();
-        const lrecKeys = keys.filter(k => k.endsWith('.lrec'));
-        
-        const videos = lrecKeys.map((key, i) => ({
-          id: `local_id_${i}`,
-          title: key,
+  const loadSaved = React.useCallback(async () => {
+    try {
+      const savedLectures = await getStoredLectureSummaries();
+      setSavedVideos(
+        savedLectures.map((lecture, index) => ({
+          id: `local_id_${index}`,
+          title: lecture.filename,
           subject: 'جلسة محملة',
           teacher: 'الذاكرة المؤقتة',
           date: 'بدون إنترنت',
-          filename: key
-        }));
-        setSavedVideos(videos);
-      } catch (err) {
-        console.error("Failed to load saved videos", err);
-      }
-    };
-    loadSaved();
+          filename: lecture.filename,
+          storageId: lecture.storageId,
+          size: lecture.size,
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to load saved videos", err);
+    }
   }, []);
+
+  React.useEffect(() => {
+    loadSaved();
+  }, [loadSaved]);
 
   const filteredVideos = savedVideos;
 
@@ -65,9 +71,7 @@ const Explore = ({ onVideoSelect }) => {
   const handleOfflineVideoClick = async (video) => {
     try {
       if (video.id.startsWith('local_id_')) {
-        const localforage = (await import('localforage')).default;
-        if (typeof localforage.ready === 'function') await localforage.ready();
-        const blob = await localforage.getItem(video.filename);
+        const blob = await getManagedItem(getLectureStorageId(video));
         if (blob) {
           onVideoSelect({
             ...video,
@@ -79,6 +83,26 @@ const Explore = ({ onVideoSelect }) => {
       onVideoSelect(video);
     } catch (err) {
       console.error("Error loading offline video:", err);
+    }
+  };
+
+  const handleDeleteOfflineVideo = async (video) => {
+    const lectureId = getLectureStorageId(video);
+
+    if (!window.confirm(`سيتم حذف "${video.filename}" وكل الملفات المؤقتة التابعة له. هل تريد المتابعة؟`)) {
+      return;
+    }
+
+    try {
+      await removeLectureAssets(lectureId, {
+        aliases: [video.filename, video.name, video.id, video.storageId],
+      });
+      setSavedVideos((currentVideos) =>
+        currentVideos.filter((currentVideo) => getLectureStorageId(currentVideo) !== lectureId)
+      );
+    } catch (err) {
+      console.error("Error deleting offline video:", err);
+      window.alert(`فشل حذف الملف: ${err.message}`);
     }
   };
 
@@ -110,7 +134,11 @@ const Explore = ({ onVideoSelect }) => {
 
       {/* Grid */}
       {filteredVideos.length > 0 ? (
-        <VideoGrid videos={filteredVideos} onVideoSelect={handleOfflineVideoClick} />
+        <VideoGrid
+          videos={filteredVideos}
+          onVideoSelect={handleOfflineVideoClick}
+          onDeleteVideo={handleDeleteOfflineVideo}
+        />
       ) : (
         <div className="flex flex-col items-center justify-center h-[40vh] text-center glass-panel rounded-3xl m-2 sm:m-4 p-8">
            <FolderOpen className="w-16 h-16 text-text-light-secondary/30 dark:text-text-dark-secondary/30 mb-4" />
@@ -118,6 +146,10 @@ const Explore = ({ onVideoSelect }) => {
            <p className="text-sm font-medium text-text-light-secondary/70 dark:text-text-dark-secondary/70 max-w-sm">
              الفيديوهات التي تقوم بتشغيلها أو تنزيلها ستظهر هنا لمشاهدتها بدون إنترنت. يمكنك أيضاً فتح ملف محلي مباشرة.
            </p>
+           <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/5 px-4 py-2 text-xs font-black text-text-light-secondary dark:bg-white/5 dark:text-text-dark-secondary">
+             <Trash2 size={14} />
+             يمكنك حذف أي ملف مباشرة من البطاقة
+           </div>
         </div>
       )}
     </div>

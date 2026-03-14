@@ -36,6 +36,7 @@ export const usePlayerStore = create((set) => ({
   setVolume: (vol) => set({ volume: vol }),
   setPlaybackRate: (rate) => set({ playbackRate: rate }),
   setFullscreen: (val) => set({ isFullscreen: val }),
+  setCurrentFileMeta: (meta) => set({ currentFileMeta: meta }),
   
   loadFile: (buffer, meta) => set({ 
     currentLrecBuffer: buffer, 

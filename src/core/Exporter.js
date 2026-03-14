@@ -13,6 +13,59 @@ const isAbortLikeError = (error, signal) => {
 };
 
 class Exporter {
+  static looksLikeWav(bytes) {
+    if (!(bytes instanceof Uint8Array) || bytes.length < 12) {
+      return false;
+    }
+
+    const riff = String.fromCharCode(...bytes.slice(0, 4));
+    const wave = String.fromCharCode(...bytes.slice(8, 12));
+    return riff === 'RIFF' && wave === 'WAVE';
+  }
+
+  static async prepareAudioInput(audioSource, signal) {
+    if (!audioSource) {
+      return null;
+    }
+
+    if (audioSource instanceof Blob) {
+      const bytes = new Uint8Array(await audioSource.arrayBuffer());
+      return {
+        fileName: /wav/i.test(audioSource.type || '') || this.looksLikeWav(bytes) ? 'audio.wav' : 'audio.mp3',
+        bytes,
+      };
+    }
+
+    if (audioSource instanceof Uint8Array) {
+      return {
+        fileName: this.looksLikeWav(audioSource) ? 'audio.wav' : 'audio.mp3',
+        bytes: audioSource,
+      };
+    }
+
+    if (audioSource instanceof ArrayBuffer) {
+      const bytes = new Uint8Array(audioSource);
+      return {
+        fileName: this.looksLikeWav(bytes) ? 'audio.wav' : 'audio.mp3',
+        bytes,
+      };
+    }
+
+    if (typeof audioSource === 'string') {
+      const audioBlob = await withRetry(async () => {
+        const response = await fetch(audioSource, { signal });
+        if (!response.ok) {
+          throw new Error(`Audio fetch failed with status ${response.status}`);
+        }
+        return response.blob();
+      }, 3, 1000, signal);
+
+      return this.prepareAudioInput(audioBlob, signal);
+    }
+
+    return null;
+  }
+
   static getOptimalCrop(parser) {
     const cropper = new SmartCropper(parser.screenWidth, parser.screenHeight);
     
@@ -62,7 +115,7 @@ class Exporter {
     return { x, y, width, height };
   }
 
-  static async exportToMp4(parser, audioUrl, onProgress, signal) {
+  static async exportToMp4(parser, audioSource, onProgress, signal) {
     const ffmpeg = await ffmpegManager.createSession({
       onProgress: ({ progress }) => {
         if (onProgress) {
@@ -96,6 +149,18 @@ class Exporter {
     const outputFileName = 'output_final.mp4';
     let audioFileName = null;
     try {
+      if (audioSource) {
+        try {
+          const preparedAudio = await this.prepareAudioInput(audioSource, signal);
+          if (preparedAudio) {
+            audioFileName = preparedAudio.fileName;
+            await ffmpeg.writeFile(audioFileName, preparedAudio.bytes, { signal });
+          }
+        } catch (error) {
+          console.warn("[Exporter] Audio extraction failed for export, skipping audio", error);
+        }
+      }
+
       // Build FFmpeg command args
       // We use rawvideo format piped via MEMFS or stdin (here we use individual frames via writeFile is slow, 
       // but FFmpeg WASM works better with writing the stream to a virtual file or concatenating).
@@ -135,19 +200,7 @@ class Exporter {
       }
 
       // Handle Audio
-      let hasAudio = false;
-      if (audioUrl) {
-        try {
-          const audioBlob = await withRetry(() => fetch(audioUrl).then(r => r.blob()), 3, 1000, signal);
-          const audioBuffer = await audioBlob.arrayBuffer();
-          const isWav = /wav/i.test(audioBlob.type || '');
-          audioFileName = isWav ? 'audio.wav' : 'audio.mp3';
-          await ffmpeg.writeFile(audioFileName, new Uint8Array(audioBuffer), { signal });
-          hasAudio = true;
-        } catch (error) {
-          console.warn("[Exporter] Audio extraction failed for export, skipping audio", error);
-        }
-      }
+      const hasAudio = Boolean(audioFileName);
 
       // FFmpeg Encoding Args - Using image2 sequence
       const ffmpegArgs = [
@@ -159,6 +212,10 @@ class Exporter {
 
       if (hasAudio && audioFileName) {
         ffmpegArgs.push('-i', audioFileName);
+      }
+
+      if (hasAudio) {
+        ffmpegArgs.push('-map', '0:v:0', '-map', '1:a:0');
       }
 
       // H.264 Encoding settings matching Python as much as possible
@@ -173,7 +230,7 @@ class Exporter {
       );
 
       if (hasAudio) {
-        ffmpegArgs.push('-c:a', 'aac', '-b:a', '192k'); // Improved audio bitrate
+        ffmpegArgs.push('-c:a', 'aac', '-b:a', '192k', '-shortest'); // Improved audio bitrate
       }
 
       ffmpegArgs.push(outputFileName);
@@ -181,7 +238,7 @@ class Exporter {
       await ffmpeg.exec(ffmpegArgs, -1, { signal });
 
       const data = await ffmpeg.readFile(outputFileName, 'binary', { signal });
-      const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
+      const mp4Blob = new Blob([data], { type: 'video/mp4' });
       return URL.createObjectURL(mp4Blob);
 
     } catch (error) {

@@ -160,12 +160,16 @@ export class FetchSvuClient {
 
       sessions.push({
         id: `${courseId}_session_${i}`,
+        course_id: courseId,
         event_argument: match[1],
         program: $(cells[1]).text().trim(),
         course_name: $(cells[2]).text().trim(),
         class_name: $(cells[3]).text().trim(),
+        term: $(cells[4]).text().trim(),
+        order: $(cells[5]).text().trim(),
         tutor: $(cells[6]).text().trim(),
-        date: $(cells[7]).text().trim()
+        date: $(cells[7]).text().trim(),
+        links: []
       });
     });
     return sessions;
