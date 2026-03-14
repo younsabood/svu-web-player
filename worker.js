@@ -1,11 +1,9 @@
 import { FetchSvuClient } from "./src/server/fetch_svu_client.js";
 
-let svuClient = null;
-
 export default {
     async fetch(request, env) {
         const url = new URL(request.url);
-
+        
         // Handle Preflight (CORS)
         if (request.method === "OPTIONS") {
             return new Response(null, {
@@ -19,7 +17,7 @@ export default {
 
         // 1. Handle SVU API requests
         if (url.pathname.startsWith('/api/svu')) {
-            if (!svuClient) svuClient = new FetchSvuClient();
+            const svuClient = new FetchSvuClient(); // FRESH CLIENT PER REQUEST
             const action = url.pathname.replace('/api/svu/', '');
 
             try {
@@ -51,11 +49,11 @@ export default {
                             result = await svuClient.selectTerm(val);
                             break;
                         case 'program':
-                            if (term) await svuClient.restoreState(term);
+                            if (term) await svuClient.restoreState(term, program);
                             result = await svuClient.selectProgram(val);
                             break;
                         case 'course':
-                            if (term) await svuClient.restoreState(term, program);
+                            if (term) await svuClient.restoreState(term, program, course);
                             result = await svuClient.selectCourse(val);
                             break;
                         case 'tutor':
@@ -63,11 +61,14 @@ export default {
                             result = await svuClient.selectTutor(val);
                             break;
                         case 'class':
+                            // For class, we must restore up to tutor
                             if (term) await svuClient.restoreState(term, program, course, tutor);
                             result = await svuClient.selectClass(val, courseId);
                             break;
                         case 'links':
-                            const sessionInfo = JSON.parse(decodeURIComponent(url.searchParams.get('session')));
+                            const sessionParam = url.searchParams.get('session');
+                            if (!sessionParam) throw new Error("Missing session data");
+                            const sessionInfo = JSON.parse(decodeURIComponent(sessionParam));
                             if (sessionInfo.term && sessionInfo.program && sessionInfo.course_id && sessionInfo.tutor && sessionInfo.class_name) {
                                 await svuClient.restoreState(sessionInfo.term, sessionInfo.program, sessionInfo.course_id, sessionInfo.tutor, sessionInfo.class_name);
                             }
@@ -95,7 +96,7 @@ export default {
             }
         }
 
-        // 2. Handle Proxy logic (if target param is present)
+        // 2. Handle Proxy logic (rest as before)
         const targetUrl = url.searchParams.get("target");
         if (targetUrl) {
             try {
@@ -122,8 +123,6 @@ export default {
         }
 
         // 3. Fallback: Serve static assets
-        // When using Workers with Assets, the assets are served automatically if the worker doesn't respond, 
-        // but since we provided a fetch handler, we must explicitly call env.ASSETS.fetch
         if (env.ASSETS) {
            return await env.ASSETS.fetch(request);
         }

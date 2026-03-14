@@ -30,7 +30,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
     const init = async () => {
       try {
         setLoadingAction('جاري جلب المواد...');
-        const data = await fetchApi(`program?term=${term}&val=${program}`);
+        const data = await fetchApi(`program?term=${encodeURIComponent(term)}&val=${encodeURIComponent(program)}`);
         setCourses(data);
       } catch (err) {
         setError(err.message);
@@ -49,7 +49,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
     
     setLoadingAction('جاري جلب الدكاترة...');
     try {
-      const data = await fetchApi(`course?term=${term}&program=${program}&val=${val}`);
+      const data = await fetchApi(`course?term=${encodeURIComponent(term)}&program=${encodeURIComponent(program)}&val=${encodeURIComponent(val)}`);
       setTutors(data);
     } catch(err) { setError(err.message); }
     setLoadingAction('');
@@ -63,7 +63,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
     
     setLoadingAction('جاري جلب الفصول...');
     try {
-      const data = await fetchApi(`tutor?term=${term}&program=${program}&course=${selectedCourse}&val=${val}`);
+      const data = await fetchApi(`tutor?term=${encodeURIComponent(term)}&program=${encodeURIComponent(program)}&course=${encodeURIComponent(selectedCourse)}&val=${encodeURIComponent(val)}`);
       setClasses(data);
     } catch(err) { setError(err.message); }
     setLoadingAction('');
@@ -77,7 +77,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
     
     setLoadingAction('جاري جلب الجلسات...');
     try {
-      const data = await fetchApi(`class?term=${term}&program=${program}&course=${selectedCourse}&tutor=${selectedTutor}&val=${val}&courseId=${selectedCourse}`);
+      const data = await fetchApi(`class?term=${encodeURIComponent(term)}&program=${encodeURIComponent(program)}&course=${encodeURIComponent(selectedCourse)}&tutor=${encodeURIComponent(selectedTutor)}&val=${encodeURIComponent(val)}&courseId=${encodeURIComponent(selectedCourse)}`);
       setSessions(data);
     } catch(err) { setError(err.message); }
     setLoadingAction('');
