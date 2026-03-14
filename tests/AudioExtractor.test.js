@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import AudioExtractor from '../src/core/AudioExtractor';
 
+const readAscii = (bytes, offset, length) =>
+  String.fromCharCode(...bytes.slice(offset, offset + length));
+
+const createPcmWav = (samples, sampleRate = 4) =>
+  AudioExtractor.buildPcmWav(Int16Array.from(samples), sampleRate, 1);
+
 describe('AudioExtractor', () => {
   it('should return null for empty chunks', () => {
     expect(AudioExtractor.buildTrueSpeechWav([])).toBeNull();
@@ -50,5 +56,24 @@ describe('AudioExtractor', () => {
     // Check payload values
     expect(wavBytes[78]).toBe(1); // Start of chunk 1
     expect(wavBytes[78 + 256]).toBe(2); // Start of chunk 2
+  });
+
+  it('should rebuild PCM with silence based on chunk timestamps', () => {
+    const chunks = [
+      { timestamp: 0, data: new Uint8Array(256).fill(1) },
+      { timestamp: 2000, data: new Uint8Array(256).fill(2) },
+    ];
+    const decodedPcm = createPcmWav([100, 101, 102, 103, 200, 201, 202, 203], 4);
+
+    const timedPcm = AudioExtractor.buildTimedPcmWav(chunks, decodedPcm, 3000);
+    const view = new DataView(timedPcm.buffer, timedPcm.byteOffset, timedPcm.byteLength);
+
+    expect(readAscii(timedPcm, 0, 4)).toBe('RIFF');
+    expect(readAscii(timedPcm, 8, 4)).toBe('WAVE');
+    expect(view.getUint32(24, true)).toBe(4);
+    expect(view.getUint32(40, true)).toBe(24);
+
+    const samples = Array.from(new Int16Array(timedPcm.buffer, timedPcm.byteOffset + 44, 12));
+    expect(samples).toEqual([100, 101, 102, 103, 0, 0, 0, 0, 200, 201, 202, 203]);
   });
 });

@@ -3,6 +3,15 @@ import CanvasRenderer from './CanvasRenderer';
 import { withRetry } from './utils';
 import SmartCropper from './SmartCropper';
 
+const isAbortLikeError = (error, signal) => {
+  const message = String(error?.message || error || '');
+  return Boolean(
+    signal?.aborted ||
+    error?.name === 'AbortError' ||
+    /abort|terminated/i.test(message)
+  );
+};
+
 class Exporter {
   static getOptimalCrop(parser) {
     const cropper = new SmartCropper(parser.screenWidth, parser.screenHeight);
@@ -54,8 +63,17 @@ class Exporter {
   }
 
   static async exportToMp4(parser, audioUrl, onProgress, signal) {
-    await withRetry(() => ffmpegManager.load(), 3, 2000, signal);
-    const ffmpeg = ffmpegManager.ffmpeg;
+    const ffmpeg = await ffmpegManager.createSession({
+      onProgress: ({ progress }) => {
+        if (onProgress) {
+          onProgress(60 + (progress * 40));
+        }
+      },
+    });
+    const abortExport = () => {
+      ffmpeg.terminate();
+    };
+    signal?.addEventListener('abort', abortExport, { once: true });
 
     const crop = this.getOptimalCrop(parser);
 
@@ -76,6 +94,7 @@ class Exporter {
     console.log(`[Exporter] Exporting ${parser.totalFrames} frames at ${inputFps.toFixed(4)} FPS. Total Duration: ${totalDurationS.toFixed(2)}s`);
 
     const outputFileName = 'output_final.mp4';
+    let audioFileName = null;
     try {
       // Build FFmpeg command args
       // We use rawvideo format piped via MEMFS or stdin (here we use individual frames via writeFile is slow, 
@@ -103,8 +122,12 @@ class Exporter {
           exportCanvas.toBlob(resolve, 'image/jpeg', 0.9);
         });
         
+        if (!frameBlob) {
+          throw new Error('Failed to generate export frame');
+        }
+
         const arrayBuffer = await frameBlob.arrayBuffer();
-        await ffmpeg.writeFile(`f_${i.toString().padStart(6, '0')}.jpg`, new Uint8Array(arrayBuffer));
+        await ffmpeg.writeFile(`f_${i.toString().padStart(6, '0')}.jpg`, new Uint8Array(arrayBuffer), { signal });
 
         if (onProgress && i % 10 === 0) {
           onProgress((i / parser.totalFrames) * 60); // 0-60% for frame generation
@@ -117,7 +140,9 @@ class Exporter {
         try {
           const audioBlob = await withRetry(() => fetch(audioUrl).then(r => r.blob()), 3, 1000, signal);
           const audioBuffer = await audioBlob.arrayBuffer();
-          await ffmpeg.writeFile('audio.mp3', new Uint8Array(audioBuffer));
+          const isWav = /wav/i.test(audioBlob.type || '');
+          audioFileName = isWav ? 'audio.wav' : 'audio.mp3';
+          await ffmpeg.writeFile(audioFileName, new Uint8Array(audioBuffer), { signal });
           hasAudio = true;
         } catch (error) {
           console.warn("[Exporter] Audio extraction failed for export, skipping audio", error);
@@ -132,8 +157,8 @@ class Exporter {
         '-i', 'f_%06d.jpg',
       ];
 
-      if (hasAudio) {
-        ffmpegArgs.push('-i', 'audio.mp3');
+      if (hasAudio && audioFileName) {
+        ffmpegArgs.push('-i', audioFileName);
       }
 
       // H.264 Encoding settings matching Python as much as possible
@@ -153,31 +178,36 @@ class Exporter {
 
       ffmpegArgs.push(outputFileName);
 
-      ffmpeg.on('progress', ({ progress }) => {
-        if (onProgress) {
-          onProgress(60 + (progress * 40)); // 60-100% for encoding
-        }
-      });
+      await ffmpeg.exec(ffmpegArgs, -1, { signal });
 
-      await ffmpeg.exec(ffmpegArgs);
-
-      const data = await ffmpeg.readFile(outputFileName);
+      const data = await ffmpeg.readFile(outputFileName, 'binary', { signal });
       const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
       return URL.createObjectURL(mp4Blob);
 
     } catch (error) {
+      if (isAbortLikeError(error, signal)) {
+        throw new Error('Export aborted by user');
+      }
       console.error("[Exporter] Export Failed:", error);
       throw error;
     } finally {
+      signal?.removeEventListener('abort', abortExport);
       // Cleanup MEMFS to prevent memory leaks
       try {
         for (let i = 0; i < parser.totalFrames; i++) {
           ffmpeg.deleteFile(`f_${i.toString().padStart(6, '0')}.jpg`).catch(() => {});
         }
-        ffmpeg.deleteFile('audio.mp3').catch(() => {});
+        if (audioFileName) {
+          ffmpeg.deleteFile(audioFileName).catch(() => {});
+        }
         ffmpeg.deleteFile(outputFileName).catch(() => {});
       } catch {
         // Cleanup is best-effort only.
+      }
+      try {
+        ffmpeg.terminate();
+      } catch {
+        // Worker may already be terminated after cancellation.
       }
     }
   }

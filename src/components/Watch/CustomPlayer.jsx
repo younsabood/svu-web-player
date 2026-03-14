@@ -30,6 +30,7 @@ const CustomPlayer = ({ fileInfo }) => {
   const rafRef = useRef(null);
   const cropperRef = useRef(null);
   const cropBoundsRef = useRef(null);
+  const audioUrlRef = useRef(null);
   
   const { 
     isPlaying, setPlaying, togglePlay, 
@@ -49,8 +50,20 @@ const CustomPlayer = ({ fileInfo }) => {
   const [isAudioProcessing, setIsAudioProcessing] = useState(false);
   const controlsTimeoutRef = useRef(null);
 
+  const setAudioSource = (url) => {
+    if (!audioRef.current) return;
+
+    if (audioUrlRef.current?.startsWith('blob:')) {
+      URL.revokeObjectURL(audioUrlRef.current);
+    }
+
+    audioUrlRef.current = url;
+    audioRef.current.src = url;
+  };
+
   useEffect(() => {
     let isMounted = true;
+    const audioElement = audioRef.current;
     
     const initPlayer = async () => {
       setLoading(true);
@@ -103,47 +116,64 @@ const CustomPlayer = ({ fileInfo }) => {
         if (parser.audioChunks.length > 0) {
            setLoadingText('تجهيز الصوت...');
            const fileId = fileInfo.id || fileInfo.filename || fileInfo.name;
-           const cacheKey = `audio_mp3_${fileId}`;
+           const cacheKey = `audio_pcm_timed_v2_${fileId}`;
            
            try {
-             const cachedMp3Blob = await localforage.getItem(cacheKey);
-             if (cachedMp3Blob && isMounted) {
-               const audioUrl = URL.createObjectURL(cachedMp3Blob);
-               audioRef.current.src = audioUrl;
+             const cachedAudioBlob = await localforage.getItem(cacheKey);
+             if (cachedAudioBlob instanceof Blob && isMounted) {
+               setAudioSource(URL.createObjectURL(cachedAudioBlob));
              } else {
-               const FAST_START_CHUNKS = 6000;
-               const initialChunks = parser.audioChunks.slice(0, FAST_START_CHUNKS);
-               const initialWav = AudioExtractor.buildTrueSpeechWav(initialChunks, parser.durationMs);
+               const buildPlayableAudio = async (chunks, targetDurationMs) => {
+                 const trueSpeechWav = AudioExtractor.buildTrueSpeechWav(chunks);
+                 const decodedPcmWav = await withRetry(
+                   () => ffmpegManager.decodeTrueSpeechToPcmWav(trueSpeechWav),
+                   3,
+                   1000
+                 );
+
+                 return AudioExtractor.buildTimedPcmWav(chunks, decodedPcmWav, targetDurationMs) ?? decodedPcmWav;
+               };
+
+               const FAST_START_CHUNKS = 400;
+               const needsBackgroundPass = parser.audioChunks.length > FAST_START_CHUNKS;
+               const initialChunks = needsBackgroundPass
+                 ? parser.audioChunks.slice(0, FAST_START_CHUNKS)
+                 : parser.audioChunks;
+               const initialDurationMs = needsBackgroundPass
+                 ? initialChunks[initialChunks.length - 1]?.timestamp ?? parser.durationMs
+                 : parser.durationMs;
+               const initialPcmWav = await buildPlayableAudio(initialChunks, initialDurationMs);
+               const initialBlob = new Blob([initialPcmWav.buffer], { type: 'audio/wav' });
                
-               const initialMp3Url = await withRetry(() => ffmpegManager.convertTrueSpeechToPlayableFormat(initialWav), 3, 1000);
-               
-               if (audioRef.current && isMounted) {
-                 audioRef.current.src = initialMp3Url;
+               if (isMounted) {
+                 setAudioSource(URL.createObjectURL(initialBlob));
                }
 
-               setTimeout(async () => {
-                 try {
-                   const fullWav = AudioExtractor.buildTrueSpeechWav(parser.audioChunks, parser.durationMs);
-                   const fullMp3Url = await withRetry(() => ffmpegManager.convertTrueSpeechToPlayableFormat(fullWav), 3, 1500);
-                   
-                   const res = await fetch(fullMp3Url);
-                   const fullBlob = await res.blob();
-                   await localforage.setItem(cacheKey, fullBlob);
+                if (needsBackgroundPass) {
+                  setTimeout(async () => {
+                  try {
+                     const fullPcmWav = await buildPlayableAudio(parser.audioChunks, parser.durationMs);
+                     const fullBlob = new Blob([fullPcmWav.buffer], { type: 'audio/wav' });
+                     await localforage.setItem(cacheKey, fullBlob);
 
                    if (audioRef.current && isMounted) {
                      const currentPos = audioRef.current.currentTime;
                      const wasPlaying = !audioRef.current.paused;
-                     audioRef.current.src = fullMp3Url;
-                     audioRef.current.currentTime = currentPos;
+                      setAudioSource(URL.createObjectURL(fullBlob));
+                      audioRef.current.currentTime = currentPos;
                      if (wasPlaying) audioRef.current.play().catch(() => {});
                    }
                    if (isMounted) setIsAudioProcessing(false);
                  } catch (err) {
                    console.error("فشل معالجة الصوت في الخلفية", err);
                    if (isMounted) setIsAudioProcessing(false);
-                 }
-               }, 100);
-               setIsAudioProcessing(true);
+                  }
+                  }, 100);
+                  setIsAudioProcessing(true);
+                } else {
+                  await localforage.setItem(cacheKey, initialBlob);
+                  setIsAudioProcessing(false);
+                }
              }
            } catch (e) {
              console.warn("فشل حفظ الصوت في الذاكرة", e);
@@ -172,14 +202,18 @@ const CustomPlayer = ({ fileInfo }) => {
     return () => {
       isMounted = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (audioRef.current) audioRef.current.pause();
+      if (audioElement) audioElement.pause();
+      if (audioUrlRef.current?.startsWith('blob:')) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
     };
   }, [fileInfo, retryCount]);
 
   const handleReload = async () => {
     const fileId = fileInfo.id || fileInfo.filename || fileInfo.name;
     setLoadingText('جاري مسح الذاكرة المؤقتة...');
-    await localforage.removeItem(`audio_mp3_${fileId}`).catch(() => {});
+    await localforage.removeItem(`audio_pcm_timed_v2_${fileId}`).catch(() => {});
     await localforage.removeItem(`thumb_${fileId}`).catch(() => {});
     setRetryCount(prev => prev + 1);
   };
