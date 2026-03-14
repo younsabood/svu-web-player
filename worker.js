@@ -1,4 +1,5 @@
 import { FetchSvuClient } from "./src/server/fetch_svu_client.js";
+import { normalizeSvuAction, runSvuMetadataAction } from "./src/server/svu_api_runtime.js";
 
 export default {
     async fetch(request, env) {
@@ -17,67 +18,27 @@ export default {
 
         // 1. Handle SVU API requests
         if (url.pathname.startsWith('/api/svu')) {
-            const svuClient = new FetchSvuClient(); // FRESH CLIENT PER REQUEST
-            const action = url.pathname.replace('/api/svu/', '');
+            const action = normalizeSvuAction(url.pathname.replace('/api/svu/', ''));
 
             try {
-                const term = url.searchParams.get('term');
-                const program = url.searchParams.get('program');
-                const course = url.searchParams.get('course');
-                const tutor = url.searchParams.get('tutor');
-                const val = url.searchParams.get('val');
-                const courseId = url.searchParams.get('courseId');
-
-                let result;
-                const cleanAction = action.split('/')[0].split('?')[0];
-
-                if (cleanAction === 'init') {
-                    result = await svuClient.initialize();
-                } else {
-                    switch (cleanAction) {
-                        case 'download':
-                            const downloadUrl = url.searchParams.get('url');
-                            if (!downloadUrl) return new Response("Missing url", { status: 400 });
-                            const dRes = await fetch(decodeURIComponent(downloadUrl), {
-                                headers: { "User-Agent": "Mozilla/5.0" }
-                            });
-                            const dHeaders = new Headers(dRes.headers);
-                            dHeaders.set("Access-Control-Allow-Origin", "*");
-                            return new Response(dRes.body, { status: dRes.status, headers: dHeaders });
-                        case 'term':
-                            if (term) await svuClient.restoreState(term);
-                            result = await svuClient.selectTerm(val);
-                            break;
-                        case 'program':
-                            if (term) await svuClient.restoreState(term, program);
-                            result = await svuClient.selectProgram(val);
-                            break;
-                        case 'course':
-                            if (term) await svuClient.restoreState(term, program, course);
-                            result = await svuClient.selectCourse(val);
-                            break;
-                        case 'tutor':
-                            if (term) await svuClient.restoreState(term, program, course);
-                            result = await svuClient.selectTutor(val);
-                            break;
-                        case 'class':
-                            // For class, we must restore up to tutor
-                            if (term) await svuClient.restoreState(term, program, course, tutor);
-                            result = await svuClient.selectClass(val, courseId);
-                            break;
-                        case 'links':
-                            const sessionParam = url.searchParams.get('session');
-                            if (!sessionParam) throw new Error("Missing session data");
-                            const sessionInfo = JSON.parse(decodeURIComponent(sessionParam));
-                            if (sessionInfo.term && sessionInfo.program && sessionInfo.course_id && sessionInfo.tutor && sessionInfo.class_name) {
-                                await svuClient.restoreState(sessionInfo.term, sessionInfo.program, sessionInfo.course_id, sessionInfo.tutor, sessionInfo.class_name);
-                            }
-                            result = await svuClient.fetchSessionLinks(sessionInfo);
-                            break;
-                        default:
-                            return new Response(JSON.stringify({ success: false, error: `Unknown action: ${cleanAction}` }), { status: 404 });
-                    }
+                if (action === 'download') {
+                    const downloadUrl = url.searchParams.get('url');
+                    if (!downloadUrl) return new Response("Missing url", { status: 400 });
+                    const dRes = await fetch(decodeURIComponent(downloadUrl), {
+                        headers: { "User-Agent": "Mozilla/5.0" }
+                    });
+                    const dHeaders = new Headers(dRes.headers);
+                    dHeaders.set("Access-Control-Allow-Origin", "*");
+                    return new Response(dRes.body, { status: dRes.status, headers: dHeaders });
                 }
+
+                const svuClient = new FetchSvuClient();
+                const result = await runSvuMetadataAction({
+                    client: svuClient,
+                    action,
+                    searchParams: url.searchParams
+                });
+
                 return new Response(JSON.stringify({ success: true, data: result }), {
                     headers: { 
                         "Content-Type": "application/json",

@@ -9,7 +9,17 @@ describe('CanvasRenderer', () => {
       getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(100) })),
       scale: vi.fn(),
     };
+
+    const bufferCanvas = {
+      getContext: vi.fn(() => mockContext),
+      width: 0,
+      height: 0,
+    };
     
+    globalThis.document = {
+      createElement: vi.fn(() => bufferCanvas),
+    };
+
     const mockCanvas = {
       getContext: vi.fn(() => mockContext),
       width: 0,
@@ -18,9 +28,12 @@ describe('CanvasRenderer', () => {
 
     const renderer = new CanvasRenderer(mockCanvas, 800, 600);
     
-    expect(mockCanvas.width).toBe(800);
-    expect(mockCanvas.height).toBe(600);
-    expect(mockCanvas.getContext).toHaveBeenCalledWith('2d', { willReadFrequently: true });
+    expect(renderer.width).toBe(800);
+    expect(renderer.height).toBe(600);
+    expect(mockCanvas.getContext).toHaveBeenCalledWith('2d');
+    expect(bufferCanvas.width).toBe(800);
+    expect(bufferCanvas.height).toBe(600);
+    expect(bufferCanvas.getContext).toHaveBeenCalledWith('2d', { willReadFrequently: true });
     
     // Test base clear
     renderer.clearScale();

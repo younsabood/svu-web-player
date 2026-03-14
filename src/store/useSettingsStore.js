@@ -33,10 +33,11 @@ const lfStorage = {
 
 export const useSettingsStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Global configuration
       term: '',
       program: '',
+      isHydrated: false,
       
       // Array of subscribed classes
       // Shape: { courseId, courseName, tutorId, tutorName, classId, className }
@@ -45,6 +46,7 @@ export const useSettingsStore = create(
       // Actions
       setTerm: (term) => set({ term }),
       setProgram: (program) => set({ program }),
+      setHydrated: (isHydrated) => set({ isHydrated }),
       
       addSubscription: (sub) => set((state) => {
         // Prevent duplicate subscriptions to the exact same class
@@ -62,6 +64,17 @@ export const useSettingsStore = create(
     {
       name: 'svu-settings-storage', // unique name
       storage: createJSONStorage(() => lfStorage),
+      partialize: (state) => ({
+        term: state.term,
+        program: state.program,
+        subscriptions: state.subscriptions,
+      }),
+      onRehydrateStorage: () => (state, error) => {
+        state?.setHydrated(true);
+        if (error) {
+          console.warn("Settings hydration error:", error);
+        }
+      },
     }
   )
 );

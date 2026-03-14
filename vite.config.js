@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { SvuSessionsClient } from './src/server/svu_sessions_client.js'
+import { normalizeSvuAction, runSvuMetadataAction } from './src/server/svu_api_runtime.js'
 
 let svuClient = null;
 let svuQueue = Promise.resolve(); // Synchronization queue for stateful requests
@@ -16,7 +17,7 @@ const svuApiPlugin = () => ({
       if (!svuClient) svuClient = new SvuSessionsClient();
 
       const url = new URL(req.url, `http://${req.headers.host}`);
-      const action = url.pathname.replace('/api/svu/', '');
+      const action = normalizeSvuAction(url.pathname.replace('/api/svu/', ''));
 
       // 1. Handle non-stateful "download" action outside the queue to avoid blocking metadata
       if (action === 'download') {
@@ -44,55 +45,20 @@ const svuApiPlugin = () => ({
         res.setHeader('Content-Type', 'application/json');
 
         try {
-          if (req.url === '/api/svu/init') {
-            const terms = await svuClient.initialize();
-            return res.end(JSON.stringify({ success: true, data: terms }));
-          }
-
-          // Extract all possible current state variables from query
-          const val = url.searchParams.get('val');
-          const term = url.searchParams.get('term');
-          const program = url.searchParams.get('program');
-          const course = url.searchParams.get('course');
-          const tutor = url.searchParams.get('tutor');
-          const courseId = url.searchParams.get('courseId');
-
-          // Action handlers
-          const handleAction = async () => {
-            switch (action) {
-              case 'term':
-                if (term) await svuClient.restoreState(term);
-                return await svuClient.selectTerm(val);
-              case 'program':
-                if (term) await svuClient.restoreState(term);
-                return await svuClient.selectProgram(val);
-              case 'course':
-                if (term) await svuClient.restoreState(term, program);
-                return await svuClient.selectCourse(val);
-              case 'tutor':
-                if (term) await svuClient.restoreState(term, program, course);
-                return await svuClient.selectTutor(val);
-              case 'class':
-                if (term) await svuClient.restoreState(term, program, course, tutor);
-                return await svuClient.selectClass(val, courseId);
-              case 'links':
-                const sessionInfo = JSON.parse(decodeURIComponent(url.searchParams.get('session')));
-                if (sessionInfo.term && sessionInfo.program && sessionInfo.course_id && sessionInfo.tutor && sessionInfo.class_name) {
-                  await svuClient.restoreState(sessionInfo.term, sessionInfo.program, sessionInfo.course_id, sessionInfo.tutor, sessionInfo.class_name);
-                }
-                return await svuClient.fetchSessionLinks(sessionInfo);
-              default:
-                throw new Error(`API action "${action}" not found or requires serialization`);
-            }
-          };
+          const handleAction = () =>
+            runSvuMetadataAction({
+              client: svuClient,
+              action,
+              searchParams: url.searchParams
+            });
 
           // Execute action with a single retry if session expired
           let result;
           try {
             result = await handleAction();
-          } catch (e) {
+          } catch {
             console.warn(`Action "${action}" failed, attempting full state re-init...`);
-            await svuClient.initialize();
+            svuClient = new SvuSessionsClient();
             result = await handleAction();
           }
 

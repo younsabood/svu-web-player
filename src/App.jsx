@@ -12,7 +12,6 @@ import OnboardingModal from './components/Settings/OnboardingModal';
 
 function App() {
   const initPersistentData = useAppStore(state => state.initPersistentData);
-  const isSidebarOpen = useAppStore(state => state.isSidebarOpen);
   const [currentView, setCurrentView] = useState('home'); 
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -20,6 +19,11 @@ function App() {
   useEffect(() => {
     initPersistentData();
   }, [initPersistentData]);
+
+  useEffect(() => {
+    document.documentElement.lang = 'ar';
+    document.documentElement.dir = 'rtl';
+  }, []);
 
   const handleVideoSelect = (file) => {
     setSelectedFile(file);

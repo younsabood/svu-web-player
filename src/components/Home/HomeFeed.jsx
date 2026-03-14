@@ -1,279 +1,305 @@
-import React, { useState, useEffect } from 'react';
-import { useSettingsStore } from '../../store/useSettingsStore';
-import { Play, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import localforage from 'localforage';
+import {
+  AlertCircle,
+  BookMarked,
+  FolderOpen,
+  Loader2,
+  Play,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { fetchSvu } from '../../lib/svuApi';
 
-const getGradientFromString = (str) => {
-  if (!str) return 'from-blue-600 to-purple-600';
-  const charCode = str.charCodeAt(0) + (str.charCodeAt(str.length - 1) || 0);
-  const colors = [
+const getGradientFromString = (text) => {
+  if (!text) return 'from-blue-600 to-cyan-500';
+  const code = text.charCodeAt(0) + (text.charCodeAt(text.length - 1) || 0);
+  const gradients = [
     'from-red-500 to-orange-500',
     'from-blue-500 to-cyan-500',
     'from-emerald-500 to-teal-500',
-    'from-purple-500 to-pink-500',
-    'from-indigo-500 to-purple-500',
+    'from-indigo-500 to-sky-500',
     'from-orange-500 to-amber-500',
-    'from-svu-blue to-blue-500'
+    'from-primary to-orange-500',
   ];
-  return colors[charCode % colors.length];
+  return gradients[code % gradients.length];
 };
 
-const ChannelRow = ({ subscription, onVideoSelect, onViewChange, refreshTrigger }) => {
-  const { term, program } = useSettingsStore();
+const QuickStat = ({ label, value }) => (
+  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-xl">
+    <div className="text-xs font-black uppercase tracking-[0.18em] text-white/60">{label}</div>
+    <div className="mt-2 text-2xl font-black text-white">{value}</div>
+  </div>
+);
+
+const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
+  const term = useSettingsStore((state) => state.term);
+  const program = useSettingsStore((state) => state.program);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [loadingVideoId, setLoadingVideoId] = useState(null);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!term || !program) return;
+
+    let cancelled = false;
+
     const fetchClassSessions = async (isRefresh = false) => {
+      setLoading(true);
+      setError('');
+
       try {
-        if (!isMounted) return;
-        setLoading(true);
-        setError(null);
-        
         const sessionsCacheKey = `svu_class_${subscription.classId}`;
         const enrichedCacheKey = `svu_enriched_${subscription.classId}`;
-        
-        let data = null;
+        let sessionPayload = null;
+
         if (!isRefresh) {
-            data = await localforage.getItem(sessionsCacheKey);
+          sessionPayload = await localforage.getItem(sessionsCacheKey);
         }
 
-        if (!data) {
-            const res = await fetch(`/api/svu/class?term=${term}&program=${program}&course=${subscription.courseId}&tutor=${subscription.tutorId}&val=${subscription.classId}&courseId=${subscription.courseId}`);
-            data = await res.json();
-            if (data.success) {
-                await localforage.setItem(sessionsCacheKey, data);
-            }
+        if (!sessionPayload) {
+          const freshData = await fetchSvu('class', {
+            term,
+            program,
+            course: subscription.courseId,
+            tutor: subscription.tutorId,
+            val: subscription.classId,
+            courseId: subscription.courseId,
+          });
+          sessionPayload = { success: true, data: freshData };
+          await localforage.setItem(sessionsCacheKey, sessionPayload);
         }
 
-        if (!data || !data.success) throw new Error(data?.error || "Failed to load class sessions");
-        if (!isMounted) return;
+        if (!sessionPayload?.success) {
+          throw new Error('تعذر تحميل جلسات هذه الشعبة.');
+        }
 
-        const initialSessions = data.data.map(s => ({
-          id: s.id,
-          title: `جلسة ${s.order}`, 
-          displayTitle: `جلسة ${s.order}`,
+        const initialSessions = sessionPayload.data.map((session) => ({
+          id: session.id,
+          title: `جلسة ${session.order}`,
+          displayTitle: `جلسة ${session.order}`,
           subject: subscription.courseName,
           teacher: subscription.tutorName,
-          date: s.date,
+          date: session.date,
           _rawSession: {
-            ...s,
-            term: term,
-            program: program,
+            ...session,
+            term,
+            program,
             course_id: subscription.courseId,
             tutor: subscription.tutorId,
-            class_name: subscription.classId
-          }
+            class_name: subscription.classId,
+          },
         }));
 
-        if (!isRefresh) {
-            const enriched = await localforage.getItem(enrichedCacheKey);
-            // Verify enriched cache matches the length of initial to not miss new sessions
-            if (enriched && enriched.length === initialSessions.length) {
-                setSessions(enriched);
-                setLoading(false);
-                return;
-            }
-        }
-        
-        setSessions(initialSessions);
-        setLoading(false);
-
-        // Fetch real names from links in background sequentially or in parallel safely
-        const updatedSessions = [...initialSessions];
-        let hasChanges = false;
-        
-        for (let i = 0; i < initialSessions.length; i++) {
-          if (!isMounted) return;
-          const video = initialSessions[i];
-          try {
-            const encoded = encodeURIComponent(JSON.stringify(video._rawSession));
-            const linkCacheKey = `svu_links_${video.id}`;
-            let linkData = null;
-            
-            if (!isRefresh) {
-                linkData = await localforage.getItem(linkCacheKey);
-            }
-            
-            if (!linkData) {
-                const linkRes = await fetch(`/api/svu/links?session=${encoded}`);
-                linkData = await linkRes.json();
-                if (linkData.success) {
-                    await localforage.setItem(linkCacheKey, linkData);
-                }
-            }
-            
-            if (linkData && linkData.success && linkData.data && linkData.data.length > 0) {
-              const bestLink = linkData.data.find(l => l.link.includes('.lrec')) || linkData.data[0];
-              const realTitle = bestLink.description || `Lecture ${video._rawSession.order}`;
-              
-              if (updatedSessions[i].title !== realTitle) {
-                  updatedSessions[i] = { ...updatedSessions[i], displayTitle: realTitle, title: realTitle };
-                  hasChanges = true;
-                  setSessions([...updatedSessions]);
-              }
-            }
-          } catch (e) {
-              console.warn("Failed to fetch link metadata for video background cache", e);
+        if (!cancelled && !isRefresh) {
+          const enrichedCache = await localforage.getItem(enrichedCacheKey);
+          if (enrichedCache && enrichedCache.length === initialSessions.length) {
+            setSessions(enrichedCache);
+            setLoading(false);
+            return;
           }
         }
 
-        if (hasChanges && isMounted) {
-           await localforage.setItem(enrichedCacheKey, updatedSessions);
+        if (!cancelled) {
+          setSessions(initialSessions);
+          setLoading(false);
         }
 
-      } catch (err) {
-        if (isMounted) {
-           setError(err.message);
-           setLoading(false);
+        const enrichedSessions = [...initialSessions];
+        let hasChanges = false;
+
+        for (let index = 0; index < initialSessions.length; index += 1) {
+          if (cancelled) return;
+
+          const currentVideo = initialSessions[index];
+          try {
+            const linkCacheKey = `svu_links_${currentVideo.id}`;
+            let linkPayload = null;
+
+            if (!isRefresh) {
+              linkPayload = await localforage.getItem(linkCacheKey);
+            }
+
+            if (!linkPayload) {
+              const links = await fetchSvu('links', { session: JSON.stringify(currentVideo._rawSession) });
+              linkPayload = { success: true, data: links };
+              await localforage.setItem(linkCacheKey, linkPayload);
+            }
+
+            if (linkPayload?.success && linkPayload.data?.length > 0) {
+              const bestLink = linkPayload.data.find((item) => item.link.includes('.lrec')) || linkPayload.data[0];
+              const nextTitle = bestLink.description || currentVideo.displayTitle;
+
+              if (enrichedSessions[index].title !== nextTitle) {
+                enrichedSessions[index] = {
+                  ...enrichedSessions[index],
+                  title: nextTitle,
+                  displayTitle: nextTitle,
+                };
+                hasChanges = true;
+              }
+            }
+          } catch (metadataError) {
+            console.warn('Unable to enrich session metadata', metadataError);
+          }
+        }
+
+        if (!cancelled && hasChanges) {
+          setSessions([...enrichedSessions]);
+          await localforage.setItem(enrichedCacheKey, enrichedSessions);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setError(requestError.message);
+          setLoading(false);
         }
       }
     };
-    
-    // Convert generic 0,1 counter to boolean refresh flag
-    const isRefresh = refreshTrigger > 0;
-    fetchClassSessions(isRefresh);
 
-    return () => { isMounted = false; };
-  }, [subscription, term, program, refreshTrigger]);
+    fetchClassSessions(refreshTrigger > 0);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [program, refreshTrigger, subscription, term]);
 
   const handleCardClick = async (video) => {
+    setLoadingVideoId(video.id);
+
     try {
-      setLoadingVideoId(video.id);
       const linkCacheKey = `svu_links_${video.id}`;
-      let data = await localforage.getItem(linkCacheKey);
-      
-      if (!data) {
-          const encoded = encodeURIComponent(JSON.stringify(video._rawSession));
-          const res = await fetch(`/api/svu/links?session=${encoded}`);
-          data = await res.json();
-          if (data.success) {
-             await localforage.setItem(linkCacheKey, data);
-          } else {
-             throw new Error(data.error);
-          }
+      let payload = await localforage.getItem(linkCacheKey);
+
+      if (!payload) {
+        const links = await fetchSvu('links', { session: JSON.stringify(video._rawSession) });
+        payload = { success: true, data: links };
+        await localforage.setItem(linkCacheKey, payload);
       }
 
-      if (data && data.data && data.data.length > 0) {
-        const link = data.data.find(l => l.link.includes('.lrec')) || data.data[0];
-        const finalTitle = link.description || video.displayTitle;
-        
-        const cachedBlob = await localforage.getItem(link.filename);
-        if (cachedBlob) {
-           onVideoSelect({
-            ...video,
-            title: finalTitle,
-            filename: link.filename,
-            localFile: new File([cachedBlob], link.filename)
-          });
-          return;
-        }
+      if (!payload?.data?.length) {
+        throw new Error('لا توجد ملفات قابلة للتشغيل لهذه الجلسة.');
+      }
 
+      const bestLink = payload.data.find((item) => item.link.includes('.lrec')) || payload.data[0];
+      const finalTitle = bestLink.description || video.displayTitle;
+      const cachedBlob = await localforage.getItem(bestLink.filename);
+
+      if (cachedBlob) {
         onVideoSelect({
           ...video,
           title: finalTitle,
-          _proxyDownloadUrl: link.link, 
-          filename: link.filename
+          filename: bestLink.filename,
+          localFile: new File([cachedBlob], bestLink.filename),
         });
+        return;
       }
-    } catch(err) {
-      console.error(err);
-      alert("Failed to load session links: " + err.message);
+
+      onVideoSelect({
+        ...video,
+        title: finalTitle,
+        _proxyDownloadUrl: bestLink.link,
+        filename: bestLink.filename,
+      });
+    } catch (requestError) {
+      window.alert(`فشل تحميل رابط الجلسة: ${requestError.message}`);
     } finally {
       setLoadingVideoId(null);
     }
   };
 
-  if (loading && sessions.length === 0) return (
-    <div className="mb-10 w-full animate-pulse">
-      <div className="flex items-center gap-4 mb-4">
-        <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5" />
-        <div className="space-y-2">
-           <div className="h-5 w-48 bg-black/5 dark:bg-white/5 rounded-md" />
-           <div className="h-3 w-32 bg-black/5 dark:bg-white/5 rounded-md" />
+  if (loading && sessions.length === 0) {
+    return (
+      <div className="mb-10 animate-pulse">
+        <div className="mb-4 flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-black/5 dark:bg-white/5" />
+          <div className="space-y-2">
+            <div className="h-5 w-48 rounded-md bg-black/5 dark:bg-white/5" />
+            <div className="h-3 w-32 rounded-md bg-black/5 dark:bg-white/5" />
+          </div>
+        </div>
+        <div className="flex gap-4 overflow-hidden">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="w-72 shrink-0 space-y-3">
+              <div className="aspect-video rounded-3xl bg-black/5 dark:bg-white/5" />
+              <div className="h-4 w-full rounded-md bg-black/5 dark:bg-white/5" />
+              <div className="h-3 w-2/3 rounded-md bg-black/5 dark:bg-white/5" />
+            </div>
+          ))}
         </div>
       </div>
-      <div className="flex gap-4 overflow-hidden">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="w-72 shrink-0 space-y-3">
-             <div className="w-full aspect-video bg-black/5 dark:bg-white/5 rounded-2xl" />
-             <div className="h-4 w-full bg-black/5 dark:bg-white/5 rounded-md" />
-             <div className="h-3 w-2/3 bg-black/5 dark:bg-white/5 rounded-md" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+    );
+  }
 
-  if (error && sessions.length === 0) return null; // Silently fail or show minimal error
+  if (error && sessions.length === 0) {
+    return (
+      <div className="mb-8 rounded-[1.75rem] border border-red-500/20 bg-red-500/8 p-5">
+        <div className="flex items-start gap-3 text-red-600 dark:text-red-400">
+          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+          <div>
+            <div className="font-black">{subscription.courseName}</div>
+            <div className="mt-1 text-sm font-medium">{error}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (sessions.length === 0) return null;
 
   const gradient = getGradientFromString(subscription.courseName);
 
   return (
-    <div className="mb-12 w-full relative group/row">
-      <div className="flex items-center justify-between mb-5">
+    <div className="mb-12">
+      <div className="mb-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-xl uppercase shadow-lg border border-white/20 shrink-0 transform transition-transform group-hover/row:scale-105`}>
+          <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-xl font-black text-white shadow-lg`}>
             {subscription.tutorName.charAt(0)}
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
+            <h2 className="flex items-center gap-2 text-xl font-black sm:text-2xl">
               {subscription.courseName}
-              <Sparkles size={16} className="text-primary hidden sm:block opacity-0 group-hover/row:opacity-100 transition-opacity" />
+              <Sparkles size={16} className="text-primary" />
             </h2>
-            <div className="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary flex items-center gap-2 mt-0.5">
-              <span className="bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-md">د. {subscription.tutorName}</span>
-              <span className="opacity-50">&bull;</span>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
+              <span className="rounded-full bg-black/5 px-3 py-1 dark:bg-white/10">د. {subscription.tutorName}</span>
               <span>{subscription.className}</span>
             </div>
           </div>
         </div>
       </div>
-      
-      <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-6 scrollbar-hide snap-x px-1 -mx-1">
-        {sessions.map((video, idx) => (
-          <div 
-            key={video.id} 
-            onClick={() => handleCardClick(video)}
-            className="w-64 sm:w-72 shrink-0 group cursor-pointer snap-start"
-            style={{ animationDelay: `${idx * 100}ms` }}
-          >
-            <div className={`w-full aspect-video rounded-2xl bg-gradient-to-br ${gradient} overflow-hidden shadow-md group-hover:shadow-xl group-hover:shadow-primary/20 transition-all duration-300 ring-1 ring-black/5 dark:ring-white/5 relative mb-3`}>
-              
-              <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
-              
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-all duration-300">
-                 {loadingVideoId === video.id ? (
-                    <Loader2 className="w-10 h-10 text-white animate-spin drop-shadow-lg" />
-                 ) : (
-                    <div className="w-14 h-14 rounded-full bg-primary/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-300 shadow-xl shadow-primary/30">
-                       <Play className="w-6 h-6 text-white ml-1 fill-current" />
-                    </div>
-                 )}
-              </div>
-              
-              <div className="absolute inset-0 p-4 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none">
-                 <h3 className="text-lg font-bold text-white line-clamp-2 leading-tight drop-shadow-md">
-                    {subscription.courseName}
-                 </h3>
-              </div>
 
-              <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-black rounded-md border border-white/10 tracking-wider">
-                {video.date}
+      <div className="hide-scrollbar -mx-1 flex gap-4 overflow-x-auto px-1 pb-4">
+        {sessions.map((video) => (
+          <button
+            key={video.id}
+            onClick={() => handleCardClick(video)}
+            className="group w-64 shrink-0 text-right sm:w-72"
+          >
+            <div className={`relative mb-3 aspect-video overflow-hidden rounded-[1.75rem] bg-gradient-to-br ${gradient} ring-1 ring-black/5 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/20 dark:ring-white/5`}>
+              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }} />
+              <div className="absolute inset-0 bg-black/0 transition-all duration-300 group-hover:bg-black/25" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                {loadingVideoId === video.id ? (
+                  <Loader2 className="h-10 w-10 animate-spin text-white" />
+                ) : (
+                  <div className="flex h-14 w-14 scale-75 items-center justify-center rounded-full bg-primary/90 text-white opacity-0 transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
+                    <Play className="mr-[-2px] h-6 w-6 fill-current" />
+                  </div>
+                )}
               </div>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent p-4">
+                <h3 className="line-clamp-2 text-lg font-black leading-tight text-white">{subscription.courseName}</h3>
+              </div>
+              <div className="absolute right-3 top-3 rounded-full bg-black/55 px-2 py-1 text-[11px] font-black text-white">{video.date}</div>
             </div>
-            
-            <h3 className="font-bold text-sm sm:text-base line-clamp-2 leading-tight mb-1 group-hover:text-primary transition-colors pr-2">
+
+            <h3 className="line-clamp-2 pr-1 text-sm font-black leading-6 transition-colors group-hover:text-primary sm:text-base">
               {video.title.split(' - ')[1] || video.title}
             </h3>
-            <p className="text-xs sm:text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
-              Lecture Session
-            </p>
-          </div>
+            <p className="mt-1 text-xs font-medium text-text-light-secondary dark:text-text-dark-secondary">جلسة متاحة الآن</p>
+          </button>
         ))}
       </div>
     </div>
@@ -281,60 +307,149 @@ const ChannelRow = ({ subscription, onVideoSelect, onViewChange, refreshTrigger 
 };
 
 const HomeFeed = ({ onVideoSelect, onViewChange }) => {
-  const subscriptions = useSettingsStore(state => state.subscriptions);
+  const term = useSettingsStore((state) => state.term);
+  const program = useSettingsStore((state) => state.program);
+  const subscriptions = useSettingsStore((state) => state.subscriptions);
+  const isHydrated = useSettingsStore((state) => state.isHydrated);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [offlineCount, setOfflineCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadOfflineCount = async () => {
+      if (typeof localforage.ready === 'function') await localforage.ready();
+      const keys = await localforage.keys();
+      if (!cancelled) {
+        setOfflineCount(keys.filter((item) => item.endsWith('.lrec')).length);
+      }
+    };
+
+    loadOfflineCount();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshTrigger]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setRefreshTrigger(prev => prev + 1);
-    
-    // Stop the spinning animation after roughly 2 seconds
-    setTimeout(() => {
-        setIsRefreshing(false);
-    }, 2000);
+    setRefreshTrigger((current) => current + 1);
+    window.setTimeout(() => setIsRefreshing(false), 1800);
   };
 
+  if (!isHydrated) {
+    return (
+      <div className="glass-panel rounded-[2rem] p-8 text-center text-sm font-bold text-text-light-secondary dark:text-text-dark-secondary">
+        جاري تجهيز الصفحة الرئيسية...
+      </div>
+    );
+  }
+
+  if (!term || !program) {
+    return (
+      <div className="glass-panel rounded-[2rem] p-8 text-center">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Sparkles className="h-10 w-10" />
+        </div>
+        <h2 className="mt-6 text-3xl font-black">ابدأ من الإعدادات</h2>
+        <p className="mx-auto mt-3 max-w-2xl text-sm font-medium leading-7 text-text-light-secondary dark:text-text-dark-secondary">
+          حدد الفصل الدراسي والبرنامج من نافذة التهيئة حتى يتمكن الموقع من جلب جلساتك وعرضها هنا بشكل تلقائي.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-2 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
-      
-      {subscriptions.length > 0 && (
-         <div className="flex justify-end mb-4 px-2">
-            <button 
-                onClick={handleRefresh} 
-                className={`flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl font-bold transition-all active:scale-95 ${isRefreshing ? 'opacity-80 pointer-events-none' : ''}`}
-            >
-               <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
-               تحديث البيانات
-            </button>
-         </div>
-      )}
+    <div className="mx-auto flex max-w-[1600px] flex-col gap-6">
+      <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,_#142132_0%,_#0f1117_42%,_#52160f_100%)] p-6 text-white shadow-2xl shadow-black/15 sm:p-8">
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+        <div className="relative z-10">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black tracking-[0.22em] text-white/80">
+                <BookMarked size={14} />
+                لوحة محاضراتك
+              </div>
+              <h1 className="mt-5 text-3xl font-black leading-tight sm:text-4xl">
+                الصفحة الرئيسية أصبحت مرتبطة مباشرة بخطتك الدراسية الحالية.
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm font-medium leading-7 text-white/75 sm:text-base">
+                كل صف أدناه يمثل مادة مشتركًا بها. اضغط على أي جلسة ليتم تشغيلها مباشرة أو تحميلها إلى التخزين المحلي.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => onViewChange?.('classes')}
+                className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition-transform hover:-translate-y-0.5"
+              >
+                إدارة المواد
+              </button>
+              <button
+                onClick={() => onViewChange?.('explore')}
+                className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur-xl transition-colors hover:bg-white/15"
+              >
+                استكشاف الملفات المحلية
+              </button>
+              <button
+                onClick={handleRefresh}
+                className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur-xl transition-colors hover:bg-white/15"
+              >
+                <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                تحديث
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <QuickStat label="الفصل والبرنامج" value={`${term} • ${program}`} />
+            <QuickStat label="المواد المشتركة" value={subscriptions.length} />
+            <QuickStat label="المحاضرات المحفوظة" value={offlineCount} />
+          </div>
+        </div>
+      </section>
 
       {subscriptions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-[50vh] text-center glass-panel rounded-3xl m-4 p-8">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-            <Sparkles className="w-10 h-10 text-primary" />
+        <div className="glass-panel flex min-h-[40vh] flex-col items-center justify-center rounded-[2rem] p-8 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <FolderOpen className="h-10 w-10" />
           </div>
-          <h2 className="text-2xl font-black mb-3">قائمتك فارغة</h2>
-          <p className="text-text-light-secondary dark:text-text-dark-secondary max-w-md font-medium mb-8">
-            اذهب إلى "موادي" للاشتراك في المواد. ستظهر المحاضرات الجديدة هنا تلقائياً وبشكل منظم.
+          <h2 className="mt-6 text-2xl font-black">قائمتك فارغة حاليًا</h2>
+          <p className="mt-3 max-w-xl text-sm font-medium leading-7 text-text-light-secondary dark:text-text-dark-secondary">
+            أضف المواد من صفحة "موادي" ليبدأ الموقع بتجميع أحدث الجلسات لكل مادة في مكان واحد.
           </p>
-          <button 
-            onClick={() => onViewChange && onViewChange('classes')}
-            className="px-8 py-3 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-95"
+          <button
+            onClick={() => onViewChange?.('classes')}
+            className="mt-8 rounded-2xl bg-primary px-8 py-4 text-sm font-black text-white shadow-lg shadow-primary/25 transition-colors hover:bg-primary-hover"
           >
-            إدارة المواد
+            الانتقال إلى إدارة المواد
           </button>
         </div>
       ) : (
-        subscriptions.map(sub => (
-          <ChannelRow 
-            key={sub.classId} 
-            subscription={sub} 
-            onVideoSelect={onVideoSelect} 
-            refreshTrigger={refreshTrigger}
-          />
-        ))
+        <>
+          <div className="flex justify-end">
+            <button
+              onClick={handleRefresh}
+              className={`flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-black text-primary transition-colors hover:bg-primary/15 ${
+                isRefreshing ? 'pointer-events-none opacity-70' : ''
+              }`}
+            >
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+              تحديث كل الصفوف
+            </button>
+          </div>
+
+          {subscriptions.map((subscription) => (
+            <ChannelRow
+              key={subscription.classId}
+              subscription={subscription}
+              onVideoSelect={onVideoSelect}
+              refreshTrigger={refreshTrigger}
+            />
+          ))}
+        </>
       )}
     </div>
   );

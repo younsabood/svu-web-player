@@ -81,7 +81,7 @@ class FfmpegManager {
     for (const name of filenames) {
       try {
         await this.ffmpeg.deleteFile(name);
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     }

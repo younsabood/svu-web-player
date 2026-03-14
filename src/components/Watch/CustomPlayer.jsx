@@ -42,7 +42,7 @@ const CustomPlayer = ({ fileInfo }) => {
 
   const [loadingText, setLoadingText] = useState('جاري تهيئة المشغل...');
   const [showControls, setShowControls] = useState(true);
-  const [fitMode, setFitMode] = useState('contain');
+  const [fitMode] = useState('contain');
   const [playbackRate, setInternalPlaybackRate] = useState(1);
   const [exportToast, setExportToast] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -305,11 +305,6 @@ const CustomPlayer = ({ fileInfo }) => {
 
   const currentBounds = cropBoundsRef.current;
   const dynamicAspect = currentBounds ? `${currentBounds.width} / ${currentBounds.height}` : '16 / 9';
-
-  const isRtl = document.dir === 'rtl';
-  const progressWidth = `${(currentTime / duration) * 100}%`;
-  const progressStyle = isRtl ? { width: progressWidth, right: 0 } : { width: progressWidth, left: 0 };
-  const thumbStyle = isRtl ? { right: `calc(${progressWidth} - 8px)` } : { left: `calc(${progressWidth} - 8px)` };
 
   return (
     <div 

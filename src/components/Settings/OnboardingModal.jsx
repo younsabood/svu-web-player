@@ -1,175 +1,241 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import {
+  AlertCircle,
+  GraduationCap,
+  RadioTower,
+  RefreshCw,
+  Rocket,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useAcademicSetup } from './useAcademicSetup';
+
+const selectClassName =
+  'w-full rounded-2xl border border-white/10 bg-white/90 px-4 py-4 text-sm font-black text-text-light-primary outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-[#171717] dark:text-white';
+
+const FeatureCard = ({ icon, title, body }) => (
+  <div className="rounded-3xl border border-white/10 bg-white/8 p-5 backdrop-blur-xl">
+    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
+      {React.createElement(icon, { size: 22 })}
+    </div>
+    <h3 className="text-lg font-black text-white">{title}</h3>
+    <p className="mt-2 text-sm font-medium leading-7 text-white/70">{body}</p>
+  </div>
+);
 
 const OnboardingModal = () => {
-  const term = useSettingsStore(state => state.term);
-  const program = useSettingsStore(state => state.program);
-  const setTerm = useSettingsStore(state => state.setTerm);
-  const setProgram = useSettingsStore(state => state.setProgram);
-  const [terms, setTermsList] = useState([]);
-  const [programs, setProgramsList] = useState([]);
+  const term = useSettingsStore((state) => state.term);
+  const program = useSettingsStore((state) => state.program);
+  const isHydrated = useSettingsStore((state) => state.isHydrated);
+  const setTerm = useSettingsStore((state) => state.setTerm);
+  const setProgram = useSettingsStore((state) => state.setProgram);
 
-  const [localTerm, setLocalTerm] = useState(term || '');
-  const [localProgram, setLocalProgram] = useState(program || '');
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const isOpen = isHydrated && !(term && program);
 
-  const [isOpen, setIsOpen] = useState(!(term && program));
+  const {
+    terms,
+    programs,
+    localTerm,
+    localProgram,
+    loadingStage,
+    error,
+    isBusy,
+    setError,
+    setLocalProgram,
+    handleTermChange,
+    reload,
+  } = useAcademicSetup({
+    enabled: isOpen,
+    savedTerm: term,
+    savedProgram: program,
+  });
 
-  useEffect(() => {
-    setIsOpen(!(term && program));
-  }, [term, program]);
-
-  const fetchApi = async (endpoint) => {
-    const res = await fetch(`/api/svu/${endpoint}`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
-  };
-
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const init = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchApi('init');
-        setTermsList(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
-  }, [isOpen]);
-
-  const handleTermChange = async (e) => {
-    const val = e.target.value;
-    setLocalTerm(val);
-    setLocalProgram('');
-    setProgramsList([]);
-    if (!val) return;
-    
-    setLoading(true);
-    try {
-      const data = await fetchApi(`term?val=${encodeURIComponent(val)}`);
-      setProgramsList(data);
-    } catch(err) { setError(err.message); }
-    setLoading(false);
-  };
+  const selectedTermLabel = terms.find((item) => item.value === localTerm)?.text || localTerm || 'لم يتم الاختيار بعد';
+  const selectedProgramLabel =
+    programs.find((item) => item.value === localProgram)?.text || localProgram || 'اختر البرنامج المناسب';
 
   const handleSave = () => {
     if (!localTerm || !localProgram) {
-      setError("يرجى اختيار كل من الفصل الدراسي والبرنامج.");
+      setError('اختر الفصل الدراسي والبرنامج الأكاديمي للمتابعة.');
       return;
     }
+
     setTerm(localTerm);
     setProgram(localProgram);
   };
 
   if (!isOpen) return null;
 
-  const selectClassBase = "w-full p-4 rounded-xl bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none disabled:opacity-40 transition-all font-black text-sm appearance-none cursor-pointer hover:bg-primary/20 dark:hover:bg-primary/30 text-text-light-primary dark:text-white [&>option]:bg-white dark:[&>option]:bg-[#1a1a1a] [&>option]:text-black dark:[&>option]:text-white";
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-700">
-      <div className="relative w-full max-w-4xl h-auto md:h-[600px] flex flex-col md:flex-row overflow-hidden rounded-[2.5rem] shadow-2xl shadow-primary/10 border border-white/10 bg-bg-light dark:bg-[#0a0a0a] animate-in zoom-in-95 duration-500">
-        
-        {/* Left Side: Hero Brand Area */}
-        <div className="hidden md:flex flex-1 relative items-center justify-center p-12 overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <img src="/hero-bg.png" alt="Hero" className="w-full h-full object-cover opacity-20 dark:opacity-40" />
-            <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-[#0a0a0a]/80 to-primary/20" />
-          </div>
-          
-          <div className="relative z-10 text-center animate-float">
-            <div className="w-28 h-28 mx-auto mb-8 bg-white/10 rounded-3xl backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl overflow-hidden">
-               <img src="/logo.png" alt="SVU Logo" className="w-full h-full object-cover" />
+    <div className="fixed inset-0 z-[100] bg-[#050505] p-4 backdrop-blur-xl">
+      <div className="mx-auto flex h-full max-w-6xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#0c0c0c] shadow-2xl shadow-black/60">
+        <div className="relative hidden flex-1 overflow-hidden md:flex">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(234,51,35,0.38),_transparent_32%),radial-gradient(circle_at_bottom_left,_rgba(28,61,90,0.38),_transparent_30%),linear-gradient(160deg,_#111_0%,_#070707_100%)]" />
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+
+          <div className="relative z-10 flex h-full flex-col justify-between p-10">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-black tracking-[0.24em] text-white/80">
+                <Sparkles size={14} />
+                SVU PLAYER
+              </div>
+
+              <h1 className="mt-8 max-w-md text-5xl font-black leading-[1.15] text-white">
+                ابدأ بيئة مشاهدة منظمة بدل التنقل العشوائي بين الجلسات.
+              </h1>
+
+              <p className="mt-5 max-w-xl text-base leading-8 text-white/70">
+                اختر الفصل الدراسي والبرنامج مرة واحدة فقط، وسيقوم الموقع بتهيئة الصفحة الرئيسية والاستكشاف وإدارة المواد وفق
+                سياقك الدراسي مباشرة.
+              </p>
             </div>
-            <h1 className="text-4xl font-black text-white mb-3 tracking-tight" dir="ltr">
-               مشغل <span className="text-primary font-black bg-primary/10 px-2 py-1 rounded-lg">SVU</span>
-            </h1>
-            <p className="text-white/60 font-medium max-w-[250px] mx-auto text-sm leading-relaxed mt-2">
-              تجربة البث والمشاهدة الأفضل والمخصصة لطلاب الجامعة الافتراضية السورية.
-            </p>
+
+            <div className="grid gap-4">
+              <FeatureCard
+                icon={Rocket}
+                title="واجهة أسرع في البداية"
+                body="تم تحسين جلب الإعدادات ليعمل بشكل مستقل في كل طلب، حتى بعد النشر على Cloudflare أو عند إعادة تحميل الصفحة."
+              />
+              <FeatureCard
+                icon={RadioTower}
+                title="تحديثات أوضح"
+                body="كل حالة تحميل أو فشل أصبحت مرئية وقابلة لإعادة المحاولة، بدل أن تبدو الواجهة متوقفة بدون تفسير."
+              />
+              <FeatureCard
+                icon={ShieldCheck}
+                title="اعتماد أقل على الحالة المشتركة"
+                body="الجلب لم يعد يعتمد على جلسة داخلية غير مضمونة بين الطلبات، ما يحسن الاستقرار خصوصًا في واجهات الإعداد."
+              />
+            </div>
           </div>
         </div>
 
-        {/* Right Side: Selection Form */}
-        <div className="w-full md:w-[450px] bg-white dark:bg-[#111111] p-8 sm:p-12 flex flex-col justify-center relative border-r border-border-light dark:border-white/5">
-          <div className="md:hidden flex flex-col items-center mb-8 mt-4">
-             <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 border border-primary/20">
-                <img src="/logo.png" alt="Logo" className="w-12 h-12" />
-             </div>
-             <h2 className="text-2xl font-black tracking-tight text-primary">مرحباً بك</h2>
-          </div>
-
-          <h2 className="hidden md:block text-3xl font-black mb-3 tracking-tight">ابدأ الآن</h2>
-          <p className="text-text-light-secondary dark:text-text-dark-secondary mb-8 text-sm font-medium leading-relaxed text-center md:text-right">
-            يرجى اختيار الفصل الدراسي والبرنامج الخاص بك لمزامنة محاضراتك والمواد تلقائياً.
-          </p>
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 text-xs font-bold animate-in slide-in-from-top-2">
-              {error}
+        <div className="flex w-full flex-col justify-between bg-white p-6 dark:bg-[#101010] md:w-[480px] md:p-8">
+          <div>
+            <div className="mb-8 flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+                <GraduationCap size={26} />
+              </div>
+              <div>
+                <h2 className="text-3xl font-black tracking-tight">تهيئة الحساب الأكاديمي</h2>
+                <p className="mt-1 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
+                  يمكنك تعديل هذه البيانات لاحقًا من زر الإعدادات في الأعلى.
+                </p>
+              </div>
             </div>
-          )}
 
-          {loading && terms.length === 0 && (
-            <div className="flex items-center justify-center gap-3 text-primary text-sm font-bold mb-8 py-4 bg-primary/5 rounded-xl border border-primary/10">
-              <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-              جاري الاتصال بسيرفر الجامعة...
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-3xl border border-black/5 bg-black/5 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-text-light-secondary dark:text-text-dark-secondary">
+                  الفصل المحدد
+                </div>
+                <div className="mt-3 text-lg font-black">{selectedTermLabel}</div>
+              </div>
+              <div className="rounded-3xl border border-black/5 bg-black/5 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-text-light-secondary dark:text-text-dark-secondary">
+                  البرنامج المحدد
+                </div>
+                <div className="mt-3 text-lg font-black">{selectedProgramLabel}</div>
+              </div>
             </div>
-          )}
 
-          <div className="space-y-6 mb-10">
-            <div className="relative group">
-              <label className="block text-xs uppercase font-black text-text-light-secondary dark:text-text-dark-secondary mb-2 px-1">الفصل الدراسي</label>
-              <div className="relative">
-                <select 
-                  value={localTerm} 
-                  onChange={handleTermChange} 
-                  disabled={loading && terms.length === 0}
-                  className={selectClassBase}
+            {error && (
+              <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
+                <div className="flex items-start gap-3">
+                  <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-black">تعذر تحميل البيانات</div>
+                    <div className="mt-1 font-medium">{error}</div>
+                  </div>
+                  <button
+                    onClick={reload}
+                    className="rounded-xl bg-red-500 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-red-600"
+                  >
+                    إعادة المحاولة
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 space-y-5">
+              <div className="space-y-2">
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-text-light-secondary dark:text-text-dark-secondary">
+                  الفصل الدراسي
+                </label>
+                <select
+                  value={localTerm}
+                  onChange={(event) => handleTermChange(event.target.value)}
+                  disabled={isBusy && loadingStage === 'terms'}
+                  className={selectClassName}
                 >
                   <option value="">اختر الفصل</option>
-                  {terms.map(t => <option key={t.value} value={t.value}>{t.text}</option>)}
+                  {terms.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.text}
+                    </option>
+                  ))}
                 </select>
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-light-secondary opacity-50">▼</div>
               </div>
-            </div>
 
-            <div className="relative group">
-              <label className="block text-xs uppercase font-black text-text-light-secondary dark:text-text-dark-secondary mb-2 px-1">البرنامج الأكاديمي</label>
-              <div className="relative">
-                <select 
-                  value={localProgram} 
-                  onChange={(e) => setLocalProgram(e.target.value)} 
-                  disabled={!programs.length || loading}
-                  className={selectClassBase}
+              <div className="space-y-2">
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-text-light-secondary dark:text-text-dark-secondary">
+                  البرنامج الأكاديمي
+                </label>
+                <select
+                  value={localProgram}
+                  onChange={(event) => setLocalProgram(event.target.value)}
+                  disabled={!programs.length || isBusy}
+                  className={selectClassName}
                 >
                   <option value="">اختر البرنامج</option>
-                  {programs.map(t => <option key={t.value} value={t.value}>{t.text}</option>)}
+                  {programs.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.text}
+                    </option>
+                  ))}
                 </select>
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-light-secondary opacity-50">▼</div>
               </div>
             </div>
           </div>
 
-          <button 
-            onClick={handleSave}
-            disabled={!localTerm || !localProgram || loading}
-            className="w-full py-4 bg-primary text-white font-black tracking-wide rounded-xl hover:bg-primary-hover shadow-lg shadow-primary/30 transition-all active:scale-95 disabled:opacity-30 disabled:shadow-none flex items-center justify-center gap-3"
-          >
-            {loading ? (
-               <>
-                 <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
-                 جاري الإعداد...
-               </>
-            ) : 'دخول للمشغل'}
-          </button>
+          <div className="mt-8 space-y-4">
+            <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-black/5 px-4 py-3 text-sm font-bold text-text-light-secondary dark:border-white/10 dark:bg-white/5 dark:text-text-dark-secondary">
+              <span>حالة الإعداد</span>
+              <span className="text-primary">
+                {loadingStage === 'idle' ? 'جاهز للمتابعة' : loadingStage === 'terms' ? 'تحميل الفصول...' : 'تحميل البرامج...'}
+              </span>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={reload}
+                disabled={isBusy}
+                className="flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-black/5 text-text-light-secondary transition-colors hover:bg-black/10 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-text-dark-secondary dark:hover:bg-white/10"
+                title="إعادة التحميل"
+              >
+                <RefreshCw size={20} className={isBusy ? 'animate-spin' : ''} />
+              </button>
+
+              <button
+                onClick={handleSave}
+                disabled={!localTerm || !localProgram || isBusy}
+                className="flex flex-1 items-center justify-center gap-3 rounded-2xl bg-primary px-5 py-4 text-base font-black text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+              >
+                {isBusy ? (
+                  <>
+                    <RefreshCw size={18} className="animate-spin" />
+                    جاري التحضير...
+                  </>
+                ) : (
+                  <>
+                    <Rocket size={18} />
+                    دخول إلى المشغل
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ try {
   fs = await import('fs');
   path = await import('path');
   os = await import('os');
-} catch (e) {
+} catch {
   // Not in Node.js environment
 }
 
@@ -309,15 +309,20 @@ export class SvuSessionsClient {
           reject(new SvuConnectionError(`File writing failed: ${err.message}`));
         });
       });
-    } catch (e) {
+    } catch (error) {
       if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-      throw new SvuConnectionError(`Download failed: ${e.message}`, e);
+      throw new SvuConnectionError(`Download failed: ${error.message}`, error);
     }
   }
 }
 
 // Simple CLI test execution
-const isMainModule = import.meta.url.startsWith('file:') && process.argv[1] && import.meta.url.includes(path.basename(process.argv[1]));
+const hasProcess = typeof globalThis.process !== 'undefined';
+const isMainModule =
+  import.meta.url.startsWith('file:') &&
+  hasProcess &&
+  globalThis.process.argv[1] &&
+  import.meta.url.includes(path.basename(globalThis.process.argv[1]));
 if (isMainModule) {
   (async () => {
     console.log("Testing Node.js SVU Sessions Client...");
@@ -330,8 +335,8 @@ if (isMainModule) {
         const programs = await client.selectTerm(terms[0].value);
         console.log(`Found ${programs.length} programs.`);
       }
-    } catch(e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
   })();
 }

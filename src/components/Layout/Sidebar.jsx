@@ -3,7 +3,7 @@ import { Home, Compass, PlaySquare, DownloadCloud, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { useExportStore } from '../../store/useExportStore';
 
-const SidebarItem = ({ icon: Icon, label, active, onClick, badge }) => (
+const SidebarItem = ({ icon, label, active, onClick, badge }) => (
   <button
     onClick={onClick}
     className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200 ${
@@ -13,7 +13,10 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, badge }) => (
     }`}
   >
     <div className="flex items-center gap-4">
-      <Icon size={24} className={active ? '' : 'text-text-light-secondary dark:text-text-dark-secondary'} />
+      {React.createElement(icon, {
+        size: 24,
+        className: active ? '' : 'text-text-light-secondary dark:text-text-dark-secondary',
+      })}
       <span className="truncate">{label}</span>
     </div>
     {badge > 0 && (

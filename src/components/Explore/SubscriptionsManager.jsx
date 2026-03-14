@@ -1,76 +1,126 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  AlertCircle,
+  BookOpen,
+  GraduationCap,
+  Library,
+  Loader2,
+  Plus,
+  Trash2,
+  User,
+  Users,
+} from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
-import { Plus, Trash2, Library, BookOpen, User, Users, Loader2 } from 'lucide-react';
+import { fetchSvu } from '../../lib/svuApi';
+
+const selectClassBase =
+  'w-full appearance-none rounded-2xl border border-black/10 bg-white px-4 py-4 text-sm font-bold text-text-light-primary outline-none transition-all hover:border-primary/30 focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-[#171717] dark:text-white';
 
 const SubscriptionsManager = () => {
-  const { term, program, subscriptions, addSubscription, removeSubscription } = useSettingsStore();
+  const term = useSettingsStore((state) => state.term);
+  const program = useSettingsStore((state) => state.program);
+  const subscriptions = useSettingsStore((state) => state.subscriptions);
+  const isHydrated = useSettingsStore((state) => state.isHydrated);
+  const addSubscription = useSettingsStore((state) => state.addSubscription);
+  const removeSubscription = useSettingsStore((state) => state.removeSubscription);
 
   const [loadingAction, setLoadingAction] = useState('');
   const [error, setError] = useState('');
-
-  // Dropdown states
   const [courses, setCourses] = useState([]);
   const [tutors, setTutors] = useState([]);
   const [classes, setClasses] = useState([]);
-
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedTutor, setSelectedTutor] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
 
-  const fetchApi = async (endpoint) => {
-    const res = await fetch(`/api/svu/${endpoint}`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
-  };
-
   useEffect(() => {
-    if (!program) return;
-    const init = async () => {
+    if (!term || !program) {
+      setCourses([]);
+      setTutors([]);
+      setClasses([]);
+      setSelectedCourse('');
+      setSelectedTutor('');
+      setSelectedClass('');
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadCourses = async () => {
+      setError('');
       setLoadingAction('جاري جلب المواد...');
+
       try {
-        const data = await fetchApi(`program?term=${term}&val=${program}`);
-        setCourses(data);
-      } catch (err) { setError(err.message); }
-      setLoadingAction('');
+        const data = await fetchSvu('program', { term, val: program });
+        if (!cancelled) {
+          setCourses(data);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setError(requestError.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingAction('');
+        }
+      }
     };
-    init();
+
+    loadCourses();
+
+    return () => {
+      cancelled = true;
+    };
   }, [program, term]);
 
-  const handleCourseChange = async (e) => {
-    const val = e.target.value;
-    setSelectedCourse(val);
-    setTutors([]); setClasses([]); setSelectedTutor(''); setSelectedClass('');
-    if (!val) return;
-    
-    setLoadingAction('جاري جلب الدكاترة...');
+  const handleCourseChange = async (event) => {
+    const value = event.target.value;
+    setSelectedCourse(value);
+    setSelectedTutor('');
+    setSelectedClass('');
+    setTutors([]);
+    setClasses([]);
+    setError('');
+
+    if (!value) return;
+
+    setLoadingAction('جاري جلب المدرسين...');
     try {
-      const data = await fetchApi(`course?term=${term}&program=${program}&val=${val}`);
+      const data = await fetchSvu('course', { term, program, val: value });
       setTutors(data);
-    } catch(err) { setError(err.message); }
-    setLoadingAction('');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoadingAction('');
+    }
   };
 
-  const handleTutorChange = async (e) => {
-    const val = e.target.value;
-    setSelectedTutor(val);
-    setClasses([]); setSelectedClass('');
-    if (!val) return;
-    
-    setLoadingAction('جاري جلب الفصول...');
+  const handleTutorChange = async (event) => {
+    const value = event.target.value;
+    setSelectedTutor(value);
+    setSelectedClass('');
+    setClasses([]);
+    setError('');
+
+    if (!value) return;
+
+    setLoadingAction('جاري جلب الشعب...');
     try {
-      const data = await fetchApi(`tutor?term=${term}&program=${program}&course=${selectedCourse}&val=${val}`);
+      const data = await fetchSvu('tutor', { term, program, course: selectedCourse, val: value });
       setClasses(data);
-    } catch(err) { setError(err.message); }
-    setLoadingAction('');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoadingAction('');
+    }
   };
 
   const handleSubscribe = () => {
     if (!selectedCourse || !selectedTutor || !selectedClass) return;
 
-    const courseObj = courses.find(c => c.value === selectedCourse);
-    const tutorObj = tutors.find(t => t.value === selectedTutor);
-    const classObj = classes.find(c => c.value === selectedClass);
+    const courseObj = courses.find((item) => item.value === selectedCourse);
+    const tutorObj = tutors.find((item) => item.value === selectedTutor);
+    const classObj = classes.find((item) => item.value === selectedClass);
 
     addSubscription({
       term,
@@ -80,139 +130,203 @@ const SubscriptionsManager = () => {
       tutorId: selectedTutor,
       tutorName: tutorObj?.text || selectedTutor,
       classId: selectedClass,
-      className: classObj?.text || selectedClass
+      className: classObj?.text || selectedClass,
     });
 
     setSelectedCourse('');
-    setTutors([]); setClasses([]); setSelectedTutor(''); setSelectedClass('');
+    setSelectedTutor('');
+    setSelectedClass('');
+    setTutors([]);
+    setClasses([]);
   };
 
-  const selectClassBase = "w-full p-3.5 pr-10 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none disabled:opacity-40 transition-all font-medium text-sm appearance-none cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 [&>option]:bg-white [&>option]:text-black dark:[&>option]:bg-[#1a1a1a] dark:[&>option]:text-white";
+  if (!isHydrated) {
+    return (
+      <div className="glass-panel rounded-[2rem] p-8 text-center text-sm font-bold text-text-light-secondary dark:text-text-dark-secondary">
+        جاري تحميل الاشتراكات المحلية...
+      </div>
+    );
+  }
+
+  if (!term || !program) {
+    return (
+      <div className="glass-panel rounded-[2rem] p-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+              <GraduationCap size={24} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black">لا يمكن إدارة المواد قبل الإعداد</h1>
+              <p className="mt-2 max-w-xl text-sm font-medium leading-7 text-text-light-secondary dark:text-text-dark-secondary">
+                حدد الفصل الدراسي والبرنامج من نافذة الإعدادات أولًا، ثم ستظهر هنا المواد والمدرسون والشعب المناسبة لك.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-primary/10 px-4 py-3 text-sm font-black text-primary">الإعدادات مطلوبة</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center text-white shadow-lg shadow-primary/20">
-          <Library size={28} strokeWidth={2} />
-        </div>
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">موادي</h1>
-          <p className="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mt-1">
-            قم ببناء جدولك الخاص. المواد المشترك بها ستظهر في الصفحة الرئيسية.
-          </p>
+    <div className="mx-auto max-w-6xl space-y-8 pb-10">
+      <div className="overflow-hidden rounded-[2rem] border border-black/5 bg-gradient-to-br from-white via-white to-primary/5 p-6 shadow-sm dark:border-white/10 dark:from-[#151515] dark:via-[#131313] dark:to-primary/10 sm:p-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-orange-500 text-white shadow-lg shadow-primary/20">
+              <Library size={26} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight">موادي</h1>
+              <p className="mt-2 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
+                ابن قائمتك الدراسية مرة واحدة، وستظهر أحدث الجلسات في الصفحة الرئيسية تلقائيًا.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-black/5 px-4 py-3 text-sm font-black text-text-light-secondary dark:bg-white/5 dark:text-text-dark-secondary">
+            {term} • {program} • {subscriptions.length} اشتراك
+          </div>
         </div>
       </div>
 
-      {/* Add Subscription Form */}
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl relative overflow-hidden group/form">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 group-hover/form:bg-primary/10 transition-colors duration-700 pointer-events-none" />
-        
-        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-          إضافة مادة 
-          <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded-md tracking-wider" dir="ltr">
-            {term} &bull; {program}
-          </span>
-        </h2>
+      <div className="glass-panel rounded-[2rem] p-6 sm:p-8">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black">إضافة مادة جديدة</h2>
+            <p className="mt-1 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
+              اختر المادة ثم المدرس ثم الشعبة لتثبيت المسار في الصفحة الرئيسية.
+            </p>
+          </div>
+          {loadingAction && (
+            <div className="flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-black text-primary">
+              <Loader2 size={16} className="animate-spin" />
+              {loadingAction}
+            </div>
+          )}
+        </div>
 
-        {error && <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 text-sm font-bold">{error}</div>}
-        
-        {loadingAction && (
-          <div className="flex items-center gap-3 text-primary text-sm font-bold mb-6">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            {loadingAction}
+        {error && (
+          <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={18} className="mt-0.5 shrink-0" />
+              <div>
+                <div className="font-black">تعذر تحميل المسار الدراسي</div>
+                <div className="mt-1 font-medium">{error}</div>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
-          
-          <div className="md:col-span-3 relative">
-            <label className="text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary uppercase tracking-widest mb-2 block">المادة</label>
+        <div className="grid gap-5 md:grid-cols-12 md:items-end">
+          <div className="space-y-2 md:col-span-3">
+            <label className="block text-xs font-black uppercase tracking-[0.2em] text-text-light-secondary dark:text-text-dark-secondary">
+              المادة
+            </label>
             <div className="relative">
-              <BookOpen size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-light-secondary opacity-50" />
-              <select value={selectedCourse} onChange={handleCourseChange} className={selectClassBase} disabled={loadingAction !== ''}>
+              <BookOpen size={18} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-light-secondary opacity-50" />
+              <select value={selectedCourse} onChange={handleCourseChange} className={`${selectClassBase} pr-11`} disabled={!!loadingAction}>
                 <option value="">اختر المادة</option>
-                {courses.map(c => <option key={c.value} value={c.value}>{c.text}</option>)}
+                {courses.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.text}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
-          <div className="md:col-span-3 relative">
-            <label className="text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary uppercase tracking-widest mb-2 block">الدكتور</label>
+          <div className="space-y-2 md:col-span-3">
+            <label className="block text-xs font-black uppercase tracking-[0.2em] text-text-light-secondary dark:text-text-dark-secondary">
+              المدرس
+            </label>
             <div className="relative">
-              <User size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-light-secondary opacity-50" />
-              <select value={selectedTutor} onChange={handleTutorChange} className={selectClassBase} disabled={!tutors.length || loadingAction !== ''}>
-                <option value="">اختر الدكتور</option>
-                {tutors.map(t => <option key={t.value} value={t.value}>{t.text}</option>)}
+              <User size={18} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-light-secondary opacity-50" />
+              <select value={selectedTutor} onChange={handleTutorChange} className={`${selectClassBase} pr-11`} disabled={!tutors.length || !!loadingAction}>
+                <option value="">اختر المدرس</option>
+                {tutors.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.text}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
-          <div className="md:col-span-3 relative">
-            <label className="text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary uppercase tracking-widest mb-2 block">الفصل / الشعبة</label>
+          <div className="space-y-2 md:col-span-3">
+            <label className="block text-xs font-black uppercase tracking-[0.2em] text-text-light-secondary dark:text-text-dark-secondary">
+              الشعبة
+            </label>
             <div className="relative">
-              <Users size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-light-secondary opacity-50" />
-              <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className={selectClassBase} disabled={!classes.length || loadingAction !== ''}>
+              <Users size={18} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-light-secondary opacity-50" />
+              <select
+                value={selectedClass}
+                onChange={(event) => setSelectedClass(event.target.value)}
+                className={`${selectClassBase} pr-11`}
+                disabled={!classes.length || !!loadingAction}
+              >
                 <option value="">اختر الشعبة</option>
-                {classes.map(c => <option key={c.value} value={c.value}>{c.text}</option>)}
+                {classes.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.text}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
           <div className="md:col-span-3">
-            <button 
-              onClick={handleSubscribe} 
-              disabled={!selectedClass || loadingAction !== ''}
-              className="w-full flex items-center justify-center gap-2 p-3.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover shadow-lg shadow-primary/30 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none"
+            <button
+              onClick={handleSubscribe}
+              disabled={!selectedClass || !!loadingAction}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-4 font-black text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
             >
-              <Plus size={20} /> إضافة مادة
+              <Plus size={20} />
+              إضافة مادة
             </button>
           </div>
         </div>
       </div>
 
-      {/* Active Subscriptions */}
       <div>
-        <h2 className="text-xl font-black mb-6 flex items-center gap-3">
-          المواد المشترك بها 
-          <span className="bg-black/5 dark:bg-white/10 px-3 py-0.5 rounded-full text-sm">{subscriptions.length}</span>
-        </h2>
-        
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-black">المواد المشترَك بها</h2>
+          <span className="rounded-full bg-black/5 px-3 py-1 text-sm font-black dark:bg-white/10">{subscriptions.length}</span>
+        </div>
+
         {subscriptions.length === 0 ? (
-          <div className="p-12 text-center border-2 border-dashed border-border-light dark:border-border-dark rounded-3xl text-text-light-secondary dark:text-text-dark-secondary bg-black/5 dark:bg-white/5">
-            <Library className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <h3 className="text-lg font-bold">لا توجد اشتراكات</h3>
-            <p className="text-sm mt-1 max-w-sm mx-auto">لم تقم بالاشتراك في أي مادة بعد. استخدم النموذج أعلاه لإضافة مادتك الأولى.</p>
+          <div className="rounded-[2rem] border-2 border-dashed border-black/10 bg-black/5 p-12 text-center text-text-light-secondary dark:border-white/10 dark:bg-white/5 dark:text-text-dark-secondary">
+            <Library className="mx-auto mb-4 h-12 w-12 opacity-20" />
+            <h3 className="text-lg font-black">لا توجد اشتراكات بعد</h3>
+            <p className="mt-2 text-sm font-medium">أضف أول مادة من النموذج أعلاه لتبدأ الصفحة الرئيسية بعرض الجلسات الجديدة.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {subscriptions.map((sub, idx) => (
-              <div 
-                key={sub.classId} 
-                className="group relative overflow-hidden p-6 rounded-2xl bg-bg-light dark:bg-bg-dark border border-border-light dark:border-border-dark shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-300"
-                style={{ animationDelay: `${idx * 100}ms` }}
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {subscriptions.map((subscription) => (
+              <div
+                key={subscription.classId}
+                className="group relative overflow-hidden rounded-[1.75rem] border border-black/5 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 dark:border-white/10 dark:bg-[#151515]"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -z-10 group-hover:bg-primary/10 transition-colors" />
-                
-                <div className="flex flex-col h-full justify-between gap-6 relative z-10">
+                <div className="absolute left-0 top-0 h-24 w-24 rounded-br-full bg-primary/6 transition-colors group-hover:bg-primary/10" />
+
+                <div className="relative z-10 flex h-full flex-col justify-between gap-6">
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-2" dir="ltr">
-                      ID: {sub.classId}
-                    </div>
-                    <h3 className="font-bold text-lg mb-2 leading-tight">{sub.courseName}</h3>
-                    <div className="flex items-center gap-2 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
-                      <User size={14} /> د. {sub.tutorName}
+                    <div className="mb-2 text-[11px] font-black uppercase tracking-[0.22em] text-primary">Class ID: {subscription.classId}</div>
+                    <h3 className="text-lg font-black leading-8">{subscription.courseName}</h3>
+                    <div className="mt-2 flex items-center gap-2 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
+                      <User size={15} />
+                      د. {subscription.tutorName}
                     </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between mt-auto">
-                    <div className="text-xs px-3 py-1.5 bg-black/5 dark:bg-white/10 rounded-lg font-bold">
-                      {sub.className}
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="rounded-2xl bg-black/5 px-3 py-2 text-xs font-black dark:bg-white/10">
+                      {subscription.className}
                     </div>
-                    <button 
-                      onClick={() => removeSubscription(sub.classId)}
-                      className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded-lg active:scale-90"
+                    <button
+                      onClick={() => removeSubscription(subscription.classId)}
+                      className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-500/10 text-red-500 transition-colors hover:bg-red-500 hover:text-white"
                       title="إلغاء الاشتراك"
                     >
                       <Trash2 size={18} />

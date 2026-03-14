@@ -58,8 +58,6 @@ class Exporter {
     const ffmpeg = ffmpegManager.ffmpeg;
 
     const crop = this.getOptimalCrop(parser);
-    const width = crop.width;
-    const height = crop.height;
 
     // Use a hidden canvas for rendering export frames
     const exportCanvas = document.createElement('canvas');
@@ -78,8 +76,6 @@ class Exporter {
     console.log(`[Exporter] Exporting ${parser.totalFrames} frames at ${inputFps.toFixed(4)} FPS. Total Duration: ${totalDurationS.toFixed(2)}s`);
 
     const outputFileName = 'output_final.mp4';
-    const rawPipeName = 'input.raw';
-
     try {
       // Build FFmpeg command args
       // We use rawvideo format piped via MEMFS or stdin (here we use individual frames via writeFile is slow, 
@@ -123,8 +119,8 @@ class Exporter {
           const audioBuffer = await audioBlob.arrayBuffer();
           await ffmpeg.writeFile('audio.mp3', new Uint8Array(audioBuffer));
           hasAudio = true;
-        } catch (e) {
-          console.warn("[Exporter] Audio extraction failed for export, skipping audio", e);
+        } catch (error) {
+          console.warn("[Exporter] Audio extraction failed for export, skipping audio", error);
         }
       }
 
@@ -180,7 +176,9 @@ class Exporter {
         }
         ffmpeg.deleteFile('audio.mp3').catch(() => {});
         ffmpeg.deleteFile(outputFileName).catch(() => {});
-      } catch (e) {}
+      } catch {
+        // Cleanup is best-effort only.
+      }
     }
   }
 }

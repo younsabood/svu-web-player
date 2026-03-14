@@ -19,18 +19,31 @@ class AudioExtractor {
       return null;
     }
 
+    const normalizedChunks = chunks.map((chunk, index) => {
+      if (chunk instanceof Uint8Array) {
+        return {
+          timestamp: index * ((chunk.length / this.AVG_BYTES_PER_SEC) * 1000),
+          data: chunk,
+        };
+      }
+      return chunk;
+    });
+
     // Insert silence for gaps and calculate total size
-    const duration = Math.max(totalDurationMs, chunks.length > 0 ? chunks[chunks.length - 1].timestamp : 0);
+    const duration = Math.max(
+      totalDurationMs,
+      normalizedChunks.length > 0 ? normalizedChunks[normalizedChunks.length - 1].timestamp : 0
+    );
     const estimatedTotalSize = Math.ceil((duration / 1000) * this.AVG_BYTES_PER_SEC) + 512;
     
-    console.log(`[AudioExtractor] Reconstructing TrueSpeech WAV. Chunks: ${chunks.length}, Target Duration: ${duration}ms`);
+    console.log(`[AudioExtractor] Reconstructing TrueSpeech WAV. Chunks: ${normalizedChunks.length}, Target Duration: ${duration}ms`);
     
     // We'll build the payload with padding
     const payload = new Uint8Array(estimatedTotalSize);
     let currentPayloadOffset = 0;
     let lastChunkEndMs = 0;
 
-    for (const chunk of chunks) {
+    for (const chunk of normalizedChunks) {
       const gapMs = chunk.timestamp - lastChunkEndMs;
       if (gapMs > 100) { // If gap > 100ms, insert silence
         let silenceBytes = Math.floor((gapMs / 1000) * this.AVG_BYTES_PER_SEC);

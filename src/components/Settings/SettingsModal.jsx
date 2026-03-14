@@ -1,180 +1,262 @@
-import React, { useState, useEffect } from 'react';
-import { useSettingsStore } from '../../store/useSettingsStore';
-import { X, Trash2, Save, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import React from 'react';
 import localforage from 'localforage';
+import {
+  AlertCircle,
+  CalendarRange,
+  Database,
+  GraduationCap,
+  Layers3,
+  RefreshCw,
+  Save,
+  Settings as SettingsIcon,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { useAcademicSetup } from './useAcademicSetup';
+
+const summaryCardClass =
+  'rounded-2xl border border-black/5 bg-black/5 p-4 dark:border-white/10 dark:bg-white/5';
+
+const selectClassName =
+  'w-full rounded-2xl border border-black/10 bg-white px-4 py-4 text-sm font-bold text-text-light-primary outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-[#171717] dark:text-white';
+
+const SummaryCard = ({ icon, label, value, accent = 'text-primary' }) => (
+  <div className={summaryCardClass}>
+    <div className="mb-3 flex items-center gap-3">
+      <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 ${accent}`}>
+        {React.createElement(icon, { size: 20 })}
+      </div>
+      <span className="text-xs font-black uppercase tracking-[0.2em] text-text-light-secondary dark:text-text-dark-secondary">
+        {label}
+      </span>
+    </div>
+    <div className="truncate text-base font-black text-text-light-primary dark:text-text-dark-primary">
+      {value}
+    </div>
+  </div>
+);
 
 const SettingsModal = ({ isOpen, onClose }) => {
-  const term = useSettingsStore(state => state.term);
-  const program = useSettingsStore(state => state.program);
-  const setTerm = useSettingsStore(state => state.setTerm);
-  const setProgram = useSettingsStore(state => state.setProgram);
-  const [terms, setTermsList] = useState([]);
-  const [programs, setProgramsList] = useState([]);
+  const term = useSettingsStore((state) => state.term);
+  const program = useSettingsStore((state) => state.program);
+  const isHydrated = useSettingsStore((state) => state.isHydrated);
+  const setTerm = useSettingsStore((state) => state.setTerm);
+  const setProgram = useSettingsStore((state) => state.setProgram);
 
-  const [localTerm, setLocalTerm] = useState(term || '');
-  const [localProgram, setLocalProgram] = useState(program || '');
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const {
+    terms,
+    programs,
+    localTerm,
+    localProgram,
+    loadingStage,
+    error,
+    isBusy,
+    setError,
+    setLocalProgram,
+    handleTermChange,
+    reload,
+  } = useAcademicSetup({
+    enabled: isOpen && isHydrated,
+    savedTerm: term,
+    savedProgram: program,
+  });
 
-  const fetchApi = async (endpoint) => {
-    const res = await fetch(`/api/svu/${endpoint}`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
-  };
-
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const init = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchApi('init');
-        setTermsList(data);
-        
-        if (localTerm) {
-            const progData = await fetchApi(`term?val=${encodeURIComponent(localTerm)}`);
-            setProgramsList(progData);
-        }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
-  }, [isOpen]);
-
-  const handleTermChange = async (e) => {
-    const val = e.target.value;
-    setLocalTerm(val);
-    setLocalProgram('');
-    setProgramsList([]);
-    if (!val) return;
-    
-    setLoading(true);
-    try {
-      const data = await fetchApi(`term?val=${encodeURIComponent(val)}`);
-      setProgramsList(data);
-    } catch(err) { setError(err.message); }
-    setLoading(false);
-  };
+  const selectedTermLabel = terms.find((item) => item.value === localTerm)?.text || localTerm || 'غير محدد';
+  const selectedProgramLabel =
+    programs.find((item) => item.value === localProgram)?.text || localProgram || 'اختر برنامجًا';
 
   const handleSave = () => {
     if (!localTerm || !localProgram) {
-      setError("يرجى اختيار كل من الفصل الدراسي والبرنامج.");
+      setError('اختر الفصل الدراسي والبرنامج الأكاديمي قبل الحفظ.');
       return;
     }
+
     setTerm(localTerm);
     setProgram(localProgram);
     onClose();
   };
 
   const handleReset = async () => {
-    if (window.confirm("هل أنت متأكد؟ هذا سيؤدي إلى حذف جميع الإعدادات والمواد المحفوظة ومقاطع الفيديو المحملة بشكل دائم!")) {
-        await localforage.clear();
-        window.location.reload();
+    if (
+      window.confirm(
+        'سيؤدي هذا إلى حذف الإعدادات والاشتراكات وكل الملفات المخزنة محليًا بشكل نهائي. هل تريد المتابعة؟'
+      )
+    ) {
+      await localforage.clear();
+      window.location.reload();
     }
   };
 
   if (!isOpen) return null;
 
-  const selectClassBase = "w-full p-4 rounded-xl bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none disabled:opacity-40 transition-all font-black text-sm appearance-none cursor-pointer hover:bg-primary/20 dark:hover:bg-primary/30 text-text-light-primary dark:text-white [&>option]:bg-white dark:[&>option]:bg-[#1a1a1a] [&>option]:text-black dark:[&>option]:text-white";
-
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-0">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
-        onClick={onClose}
-      />
-      
-      {/* Modal */}
-      <div className="relative bg-bg-light dark:bg-[#111] border border-border-light dark:border-white/10 rounded-3xl shadow-2xl shadow-black/50 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
-        
-        {/* Header */}
-        <div className="p-5 sm:p-6 border-b border-border-light dark:border-white/5 flex items-center justify-between bg-black/5 dark:bg-white/5">
-            <h2 className="text-xl font-black flex items-center gap-3 tracking-tight">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                  <SettingsIcon size={20} />
-                </div>
-                إعدادات النظام
-            </h2>
-            <button 
-              onClick={onClose} 
-              className="p-2.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 text-text-light-secondary dark:text-text-dark-secondary transition-colors active:scale-90"
-            >
-                <X size={20} />
-            </button>
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+
+      <div className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/10 bg-bg-light shadow-2xl shadow-black/40 dark:bg-[#111]">
+        <div className="border-b border-black/5 bg-black/5 px-5 py-4 dark:border-white/10 dark:bg-white/5 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <SettingsIcon size={20} />
+              </div>
+              <div>
+                <h2 className="text-xl font-black tracking-tight">إعدادات النظام</h2>
+                <p className="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
+                  عدل الفصل والبرنامج بدون فقدان اشتراكاتك الحالية.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={reload}
+                disabled={!isHydrated || isBusy}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-black/5 text-text-light-secondary transition-colors hover:bg-black/10 disabled:opacity-50 dark:bg-white/5 dark:text-text-dark-secondary dark:hover:bg-white/10"
+                title="إعادة تحميل البيانات"
+              >
+                <RefreshCw size={18} className={isBusy ? 'animate-spin' : ''} />
+              </button>
+              <button
+                onClick={onClose}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-black/5 text-text-light-secondary transition-colors hover:bg-black/10 dark:bg-white/5 dark:text-text-dark-secondary dark:hover:bg-white/10"
+                title="إغلاق"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Body */}
-        <div className="p-6 sm:p-8 space-y-8">
-          {error && (
-            <div className="bg-red-500/10 text-red-600 dark:text-red-400 p-4 rounded-xl text-xs font-bold border border-red-500/20 flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              {error}
+        <div className="max-h-[calc(92vh-88px)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
+          {!isHydrated ? (
+            <div className="flex min-h-52 items-center justify-center rounded-3xl border border-black/5 bg-black/5 text-sm font-bold text-text-light-secondary dark:border-white/10 dark:bg-white/5 dark:text-text-dark-secondary">
+              جاري مزامنة الإعدادات المحلية...
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <SummaryCard icon={CalendarRange} label="الفصل الحالي" value={selectedTermLabel} />
+                <SummaryCard icon={GraduationCap} label="البرنامج الحالي" value={selectedProgramLabel} />
+                <SummaryCard
+                  icon={Layers3}
+                  label="حالة الجلب"
+                  value={loadingStage === 'idle' ? 'جاهز' : loadingStage === 'terms' ? 'تحميل الفصول' : 'تحميل البرامج'}
+                  accent="text-svu-blue"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <div className="font-black">تعذر تحميل بيانات الجامعة</div>
+                      <div className="mt-1 font-medium">{error}</div>
+                    </div>
+                    <button
+                      onClick={reload}
+                      className="rounded-xl bg-red-500 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-red-600"
+                    >
+                      إعادة المحاولة
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-[1.75rem] border border-black/5 bg-gradient-to-br from-white via-white to-primary/5 p-5 shadow-sm dark:border-white/10 dark:from-[#161616] dark:via-[#141414] dark:to-primary/10">
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-black">المسار الأكاديمي</h3>
+                    <p className="mt-1 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
+                      عند تغيير الفصل أو البرنامج سيتم استخدامه مباشرة في الصفحة الرئيسية والاستكشاف وإدارة المواد.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-primary/10 px-3 py-2 text-xs font-black text-primary">
+                    {terms.length} فصل • {programs.length} برنامج
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-black uppercase tracking-[0.2em] text-text-light-secondary dark:text-text-dark-secondary">
+                      الفصل الدراسي
+                    </label>
+                    <select
+                      value={localTerm}
+                      onChange={(event) => handleTermChange(event.target.value)}
+                      disabled={isBusy && loadingStage === 'terms'}
+                      className={selectClassName}
+                    >
+                      <option value="">اختر الفصل</option>
+                      {terms.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.text}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-xs font-black uppercase tracking-[0.2em] text-text-light-secondary dark:text-text-dark-secondary">
+                      البرنامج الأكاديمي
+                    </label>
+                    <select
+                      value={localProgram}
+                      onChange={(event) => setLocalProgram(event.target.value)}
+                      disabled={!programs.length || isBusy}
+                      className={selectClassName}
+                    >
+                      <option value="">اختر البرنامج</option>
+                      {programs.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.text}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    onClick={handleSave}
+                    disabled={!localTerm || !localProgram || isBusy}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-4 text-sm font-black text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                  >
+                    <Save size={18} />
+                    حفظ التغييرات
+                  </button>
+
+                  <div className="flex items-center justify-center rounded-2xl border border-black/5 bg-black/5 px-4 text-sm font-bold text-text-light-secondary dark:border-white/10 dark:bg-white/5 dark:text-text-dark-secondary">
+                    التغيير لا يمس الفيديوهات المحفوظة أو الاشتراكات إلا إذا اخترت المسح الكامل.
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-red-500/20 bg-red-500/[0.06] p-5">
+                <div className="mb-4 flex items-center gap-3 text-red-500">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-500/10">
+                    <Database size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-[0.2em]">منطقة الخطر</h3>
+                    <p className="mt-1 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
+                      امسح كل ما تم حفظه محليًا إذا أردت إعادة ضبط الموقع بالكامل.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleReset}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/30 px-4 py-3.5 font-black text-red-500 transition-colors hover:bg-red-500/10"
+                >
+                  <Trash2 size={18} />
+                  مسح جميع البيانات المحلية
+                </button>
+              </div>
             </div>
           )}
-
-          <div className="space-y-5">
-            <div className="relative group">
-              <label className="block text-[10px] uppercase tracking-widest font-black text-text-light-secondary dark:text-text-dark-secondary mb-2 px-1">الفصل الدراسي</label>
-              <div className="relative">
-                <select 
-                  value={localTerm} 
-                  onChange={handleTermChange} 
-                  className={selectClassBase}
-                >
-                  <option value="">اختر الفصل</option>
-                  {terms.map(t => <option key={t.value} value={t.value}>{t.text}</option>)}
-                </select>
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-light-secondary opacity-50">▼</div>
-              </div>
-            </div>
-
-            <div className="relative group">
-              <label className="block text-[10px] uppercase tracking-widest font-black text-text-light-secondary dark:text-text-dark-secondary mb-2 px-1">البرنامج الأكاديمي</label>
-              <div className="relative">
-                <select 
-                  value={localProgram} 
-                  onChange={(e) => setLocalProgram(e.target.value)} 
-                  disabled={!programs.length}
-                  className={selectClassBase}
-                >
-                  <option value="">اختر البرنامج</option>
-                  {programs.map(t => <option key={t.value} value={t.value}>{t.text}</option>)}
-                </select>
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-light-secondary opacity-50">▼</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <button 
-              onClick={handleSave}
-              className="w-full py-4 bg-primary text-white font-black tracking-wide rounded-xl hover:bg-primary-hover shadow-lg shadow-primary/30 transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-              <Save size={18} />
-              حفظ التغييرات
-            </button>
-          </div>
-
-          {/* Danger Zone */}
-          <div className="pt-6 mt-6 border-t border-border-light dark:border-white/5">
-             <h3 className="text-xs font-black uppercase tracking-widest text-red-500 mb-2 px-1">منطقة الخطر</h3>
-             <p className="text-xs font-medium text-text-light-secondary dark:text-text-dark-secondary mb-4 px-1 leading-relaxed">
-               سيؤدي مسح مساحة التخزين إلى إزالة جميع الفصول الدراسية المحفوظة وحذف مقاطع الفيديو التي تم تنزيلها بشكل دائم من هذا المتصفح.
-             </p>
-             <button 
-                onClick={handleReset}
-                className="w-full py-3.5 border-2 border-red-500/20 text-red-600 dark:text-red-400 font-bold rounded-xl hover:bg-red-500/10 transition-all flex items-center justify-center gap-2 active:scale-95"
-             >
-                <Trash2 size={18} />
-                مسح جميع البيانات المحلية
-             </button>
-          </div>
         </div>
       </div>
     </div>

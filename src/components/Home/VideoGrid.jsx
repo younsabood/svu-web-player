@@ -21,16 +21,19 @@ const VideoCard = ({ video, onSelect }) => {
   const gradient = getGradientFromString(video.subject);
 
   useEffect(() => {
+    let objectUrl = null;
+
     const loadThumb = async () => {
       const fileId = video.id || video.filename || video.name;
       const thumbBlob = await localforage.getItem(`thumb_${fileId}`);
       if (thumbBlob) {
-        setThumbnailUrl(URL.createObjectURL(thumbBlob));
+        objectUrl = URL.createObjectURL(thumbBlob);
+        setThumbnailUrl(objectUrl);
       }
     };
     loadThumb();
     return () => {
-      if (thumbnailUrl) URL.revokeObjectURL(thumbnailUrl);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [video]);
   

@@ -7,7 +7,7 @@ import { create } from 'zustand';
  * - Loaded LREC File reference
  * - Volume / Fullscreen state
  */
-export const usePlayerStore = create((set, get) => ({
+export const usePlayerStore = create((set) => ({
   // Playback
   isPlaying: false,
   currentTime: 0,

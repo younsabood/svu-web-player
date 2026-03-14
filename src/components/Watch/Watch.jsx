@@ -29,7 +29,7 @@ const Watch = ({ file }) => {
           const localforage = (await import('localforage')).default;
           if (typeof localforage.ready === 'function') await localforage.ready();
           
-          const cacheKey = file.name || file.id || 'unknown_file';
+          const cacheKey = file.filename || file.name || file.id || 'unknown_file';
           const cachedBlob = await localforage.getItem(cacheKey);
           
           if (cachedBlob) {
