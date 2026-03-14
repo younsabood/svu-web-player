@@ -102,7 +102,9 @@ const SvuBrowser = ({ onVideoSelect }) => {
         // Find best link or use first
         const downloadLink = data.find(l => l.filename && l.filename.endsWith('.lrec')) || data[0];
         
-        const cachedBlob = await import('localforage').then(lf => lf.getItem(downloadLink.filename));
+        const localforage = (await import('localforage')).default;
+        if (typeof localforage.ready === 'function') await localforage.ready();
+        const cachedBlob = await localforage.getItem(downloadLink.filename);
         if (cachedBlob) {
           onVideoSelect({
             id: downloadLink.id,

@@ -25,8 +25,9 @@ const Explore = ({ onVideoSelect }) => {
   React.useEffect(() => {
     const loadSaved = async () => {
       try {
-        const lf = await import('localforage');
-        const keys = await lf.keys();
+        const localforage = (await import('localforage')).default;
+        if (typeof localforage.ready === 'function') await localforage.ready();
+        const keys = await localforage.keys();
         const lrecKeys = keys.filter(k => k.endsWith('.lrec'));
         
         const videos = lrecKeys.map((key, i) => ({
@@ -64,8 +65,9 @@ const Explore = ({ onVideoSelect }) => {
   const handleOfflineVideoClick = async (video) => {
     try {
       if (video.id.startsWith('local_id_')) {
-        const lf = await import('localforage');
-        const blob = await lf.getItem(video.filename);
+        // Use statically imported localforage
+        if (typeof localforage.ready === 'function') await localforage.ready();
+        const blob = await localforage.getItem(video.filename);
         if (blob) {
           onVideoSelect({
             ...video,

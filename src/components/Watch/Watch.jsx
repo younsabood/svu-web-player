@@ -26,9 +26,11 @@ const Watch = ({ file }) => {
           if (signal.aborted) return;
           setDownloadProgress({ text: 'جاري بدء التحميل...', perc: 0 });
           
-          const lf = await import('localforage');
+          const localforage = (await import('localforage')).default;
+          if (typeof localforage.ready === 'function') await localforage.ready();
+          
           const cacheKey = file.name || file.id || 'unknown_file';
-          const cachedBlob = await lf.getItem(cacheKey);
+          const cachedBlob = await localforage.getItem(cacheKey);
           
           if (cachedBlob) {
             if (signal.aborted) return;

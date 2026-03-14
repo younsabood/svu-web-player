@@ -1,6 +1,6 @@
 name = "svu-web-player"
-main = "worker.js"
 compatibility_date = "2024-04-03"
+compatibility_flags = [ "nodejs_compat" ]
 workers_dev = true
 preview_urls = true
 
