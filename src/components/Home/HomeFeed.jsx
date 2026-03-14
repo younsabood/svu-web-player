@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { fetchSvu } from '../../lib/svuApi';
+import { showErrorDialog } from '../../lib/dialogs';
 import { getManagedItem } from '../../lib/storageManager';
 import { createSessionPlaceholder, resolveSessionTitles } from '../../core/sessionMetadata';
 
@@ -243,7 +244,10 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
         filename: bestLink.filename,
       });
     } catch (requestError) {
-      window.alert(`فشل تحميل رابط الجلسة: ${requestError.message}`);
+      await showErrorDialog({
+        title: 'فشل تحميل رابط الجلسة',
+        text: requestError.message,
+      });
     } finally {
       setLoadingVideoId(null);
     }

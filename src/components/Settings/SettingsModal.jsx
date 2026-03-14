@@ -20,6 +20,7 @@ import {
   getLectureStorageId,
   getStorageStats,
 } from '../../lib/storageManager';
+import { showConfirmDialog, showErrorDialog, showSuccessToast } from '../../lib/dialogs';
 import { usePlayerStore } from '../../store/usePlayerStore';
 
 const summaryCardClass =
@@ -103,22 +104,28 @@ const SettingsModal = ({ isOpen, onClose }) => {
   };
 
   const handleReset = async () => {
-    if (
-      window.confirm(
-        'سيؤدي هذا إلى حذف الإعدادات والاشتراكات وكل الملفات المخزنة محليًا بشكل نهائي. هل تريد المتابعة؟'
-      )
-    ) {
+    const isConfirmed = await showConfirmDialog({
+      title: 'مسح جميع البيانات المحلية',
+      text: 'سيؤدي هذا إلى حذف الإعدادات والاشتراكات وكل الملفات المخزنة محليًا بشكل نهائي.',
+      confirmButtonText: 'مسح نهائي',
+      cancelButtonText: 'إلغاء',
+    });
+
+    if (isConfirmed) {
       await localforage.clear();
       window.location.reload();
     }
   };
 
   const handleClearTemporaryData = async () => {
-    if (
-      !window.confirm(
-        'سيتم حذف الصوت المؤقت، الصور المصغرة، وبيانات الجلب المؤقتة فقط مع الإبقاء على المحاضرات المحفوظة وعدم لمس المحاضرة المفتوحة حالياً. هل تريد المتابعة؟'
-      )
-    ) {
+    const isConfirmed = await showConfirmDialog({
+      title: 'تنظيف الملفات المؤقتة',
+      text: 'سيتم حذف الصوت المؤقت، الصور المصغرة، وبيانات الجلب المؤقتة فقط مع الإبقاء على المحاضرات المحفوظة وعدم لمس المحاضرة المفتوحة حالياً.',
+      confirmButtonText: 'تنظيف الآن',
+      cancelButtonText: 'إلغاء',
+    });
+
+    if (!isConfirmed) {
       return;
     }
 
@@ -128,8 +135,16 @@ const SettingsModal = ({ isOpen, onClose }) => {
         preserveLectureIds: currentFileMeta ? [getLectureStorageId(currentFileMeta)] : [],
       });
       await loadStorageStats();
+      await showSuccessToast({
+        title: 'تم التنظيف',
+        text: 'تم حذف الملفات المؤقتة غير المستخدمة.',
+      });
     } catch (cleanupError) {
       setError(`فشل تنظيف التخزين المؤقت: ${cleanupError.message}`);
+      await showErrorDialog({
+        title: 'فشل تنظيف التخزين المؤقت',
+        text: cleanupError.message,
+      });
     } finally {
       setStorageBusy(false);
     }

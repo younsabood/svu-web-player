@@ -8,6 +8,7 @@ import {
   getStoredLectureSummaries,
   removeLectureAssets,
 } from '../../lib/storageManager';
+import { showConfirmDialog, showErrorDialog, showSuccessToast } from '../../lib/dialogs';
 
 const FilterPill = ({ label, active, onClick }) => (
   <button
@@ -89,7 +90,14 @@ const Explore = ({ onVideoSelect }) => {
   const handleDeleteOfflineVideo = async (video) => {
     const lectureId = getLectureStorageId(video);
 
-    if (!window.confirm(`سيتم حذف "${video.filename}" وكل الملفات المؤقتة التابعة له. هل تريد المتابعة؟`)) {
+    const isConfirmed = await showConfirmDialog({
+      title: 'حذف المحاضرة',
+      text: `سيتم حذف "${video.filename}" وكل الملفات المؤقتة التابعة له.`,
+      confirmButtonText: 'حذف نهائياً',
+      cancelButtonText: 'إلغاء',
+    });
+
+    if (!isConfirmed) {
       return;
     }
 
@@ -100,9 +108,16 @@ const Explore = ({ onVideoSelect }) => {
       setSavedVideos((currentVideos) =>
         currentVideos.filter((currentVideo) => getLectureStorageId(currentVideo) !== lectureId)
       );
+      await showSuccessToast({
+        title: 'تم الحذف',
+        text: 'تم حذف المحاضرة وملفاتها المؤقتة.',
+      });
     } catch (err) {
       console.error("Error deleting offline video:", err);
-      window.alert(`فشل حذف الملف: ${err.message}`);
+      await showErrorDialog({
+        title: 'فشل حذف الملف',
+        text: err.message,
+      });
     }
   };
 
