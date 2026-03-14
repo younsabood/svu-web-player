@@ -1,0 +1,10 @@
+name = "svu-web-player"
+pages_build_output_dir = "dist"
+
+[vars]
+# Add any environment variables here
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200

@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #ea3323;
+  --color-primary-hover: #ff4533;
+  --color-svu-blue: #1c3d5a;
+  --color-surface-dark: #18181b;
+  --color-surface-light: #ffffff;
+  --color-bg-dark: #09090b;
+  --color-bg-light: #fafafa;
+  --color-border-dark: #27272a;
+  --color-border-light: #e4e4e7;
+  --font-sans: "Cairo", "Inter", "Roobert", "Roboto", "Segoe UI", system-ui, sans-serif;
+  --color-text-dark-primary: #f8fafc;
+  --color-text-dark-secondary: #a1a1aa;
+  --color-text-light-primary: #0f172a;
+  --color-text-light-secondary: #64748b;
+}
+
+/* Enable class-based dark mode in Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+    --primary-rgb: 234, 51, 35;
+  }
+  
+  body {
+    @apply bg-bg-light text-text-light-primary font-sans antialiased m-0 overflow-x-hidden selection:bg-primary/30 selection:text-primary transition-colors duration-500 ease-in-out;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(var(--primary-rgb), 0.04) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(28, 61, 90, 0.03) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  /* Manual Dark Mode Override */
+  .dark body {
+    @apply bg-bg-dark text-text-dark-primary selection:bg-primary/40 selection:text-white;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(var(--primary-rgb), 0.06) 0px, transparent 40%),
+      radial-gradient(at 100% 100%, rgba(28, 61, 90, 0.08) 0px, transparent 40%),
+      radial-gradient(at 50% 50%, rgba(255, 255, 255, 0.01) 0px, transparent 60%);
+    background-attachment: fixed;
+  }
+
+  /* Dropdown Option Styling Fix for Browsers */
+  select option {
+    @apply bg-white text-slate-900 dark:bg-[#18181b] dark:text-slate-100 font-sans p-4;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-dark/10 dark:bg-border-light/10 border-[2px] border-solid border-transparent bg-clip-padding rounded-full transition-colors duration-300;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border-dark/30 dark:bg-border-light/20 border-[1px];
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)];
+  }
+  
+  .glass-button {
+    @apply bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-md border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300 active:scale-95;
+  }
+  
+  .text-glow {
+    text-shadow: 0 0 20px rgba(var(--primary-rgb), 0.5);
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
