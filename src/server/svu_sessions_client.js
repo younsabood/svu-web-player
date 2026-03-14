@@ -1,13 +1,19 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+let fs, path, os;
+try {
+  fs = await import('fs');
+  path = await import('path');
+  os = await import('os');
+} catch (e) {
+  // Not in Node.js environment
+}
+
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
 
 const SESSIONS_URL = "http://sessions.svuonline.org/new/";
-const TEMP_LECTURES_DIR = path.join(os.tmpdir(), "lrec_player_lectures");
+const TEMP_LECTURES_DIR = os?.tmpdir ? path.join(os.tmpdir(), "lrec_player_lectures") : "/tmp/lrec_player_lectures";
 
 class SvuConnectionError extends Error {
   constructor(message, original = null) {
