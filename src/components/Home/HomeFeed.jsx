@@ -270,12 +270,12 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
         </div>
       </div>
 
-      <div className="hide-scrollbar -mx-1 flex gap-4 overflow-x-auto px-1 pb-4">
+      <div className="grid grid-cols-1 gap-4 pb-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {sessions.map((video) => (
           <button
             key={video.id}
             onClick={() => handleCardClick(video)}
-            className="group w-64 shrink-0 text-right sm:w-72"
+            className="group w-full text-right"
           >
             <div className={`relative mb-3 aspect-video overflow-hidden rounded-[1.75rem] bg-gradient-to-br ${gradient} ring-1 ring-black/5 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/20 dark:ring-white/5`}>
               <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }} />
