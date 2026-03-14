@@ -31,10 +31,21 @@ export default {
                 const courseId = url.searchParams.get('courseId');
 
                 let result;
-                if (url.pathname === '/api/svu/init') {
+                const cleanAction = action.split('/')[0].split('?')[0];
+
+                if (cleanAction === 'init') {
                     result = await svuClient.initialize();
                 } else {
-                    switch (action) {
+                    switch (cleanAction) {
+                        case 'download':
+                            const downloadUrl = url.searchParams.get('url');
+                            if (!downloadUrl) return new Response("Missing url", { status: 400 });
+                            const dRes = await fetch(decodeURIComponent(downloadUrl), {
+                                headers: { "User-Agent": "Mozilla/5.0" }
+                            });
+                            const dHeaders = new Headers(dRes.headers);
+                            dHeaders.set("Access-Control-Allow-Origin", "*");
+                            return new Response(dRes.body, { status: dRes.status, headers: dHeaders });
                         case 'term':
                             if (term) await svuClient.restoreState(term);
                             result = await svuClient.selectTerm(val);
@@ -63,7 +74,7 @@ export default {
                             result = await svuClient.fetchSessionLinks(sessionInfo);
                             break;
                         default:
-                            return new Response(JSON.stringify({ success: false, error: 'Unknown action' }), { status: 404 });
+                            return new Response(JSON.stringify({ success: false, error: `Unknown action: ${cleanAction}` }), { status: 404 });
                     }
                 }
                 return new Response(JSON.stringify({ success: true, data: result }), {
