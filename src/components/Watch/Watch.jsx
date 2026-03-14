@@ -77,7 +77,7 @@ const Watch = ({ file }) => {
 
           setDownloadProgress({ text: 'جاري الحفظ في الذاكرة...', perc: 100 });
           const finalBlob = new Blob(chunks);
-          await lf.setItem(cacheKey, finalBlob);
+          await localforage.setItem(cacheKey, finalBlob);
 
           setPlayableFile({
             ...file,

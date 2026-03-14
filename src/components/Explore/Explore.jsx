@@ -65,7 +65,7 @@ const Explore = ({ onVideoSelect }) => {
   const handleOfflineVideoClick = async (video) => {
     try {
       if (video.id.startsWith('local_id_')) {
-        // Use statically imported localforage
+        const localforage = (await import('localforage')).default;
         if (typeof localforage.ready === 'function') await localforage.ready();
         const blob = await localforage.getItem(video.filename);
         if (blob) {
