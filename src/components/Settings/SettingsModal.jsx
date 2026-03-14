@@ -153,11 +153,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[110] flex items-stretch justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
 
-      <div className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/10 bg-bg-light shadow-2xl shadow-black/40 dark:bg-[#111]">
-        <div className="border-b border-black/5 bg-black/5 px-5 py-4 dark:border-white/10 dark:bg-white/5 sm:px-6">
+      <div className="relative z-10 flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden rounded-none border border-white/10 bg-bg-light shadow-2xl shadow-black/40 dark:bg-[#111] sm:h-auto sm:max-h-[92vh] sm:rounded-[2rem]">
+        <div className="border-b border-black/5 bg-black/5 px-4 py-4 dark:border-white/10 dark:bg-white/5 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -191,7 +191,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        <div className="max-h-[calc(92vh-88px)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
+        <div className="max-h-none flex-1 overflow-y-auto px-4 py-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:max-h-[calc(92vh-88px)] sm:px-6 sm:py-6">
           {!isHydrated ? (
             <div className="flex min-h-52 items-center justify-center rounded-3xl border border-black/5 bg-black/5 text-sm font-bold text-text-light-secondary dark:border-white/10 dark:bg-white/5 dark:text-text-dark-secondary">
               جاري مزامنة الإعدادات المحلية...
@@ -240,15 +240,15 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 </div>
               )}
 
-              <div className="rounded-[1.75rem] border border-black/5 bg-gradient-to-br from-white via-white to-primary/5 p-5 shadow-sm dark:border-white/10 dark:from-[#161616] dark:via-[#141414] dark:to-primary/10">
-                <div className="mb-5 flex items-start justify-between gap-4">
+              <div className="rounded-[1.5rem] border border-black/5 bg-gradient-to-br from-white via-white to-primary/5 p-4 shadow-sm dark:border-white/10 dark:from-[#161616] dark:via-[#141414] dark:to-primary/10 sm:rounded-[1.75rem] sm:p-5">
+                <div className="mb-5 flex flex-col items-start justify-between gap-4 sm:flex-row">
                   <div>
                     <h3 className="text-lg font-black">المسار الأكاديمي</h3>
                     <p className="mt-1 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
                       عند تغيير الفصل أو البرنامج سيتم استخدامه مباشرة في الصفحة الرئيسية والاستكشاف وإدارة المواد.
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-primary/10 px-3 py-2 text-xs font-black text-primary">
+                  <div className="w-full rounded-2xl bg-primary/10 px-3 py-2 text-xs font-black text-primary sm:w-auto">
                     {terms.length} فصل • {programs.length} برنامج
                   </div>
                 </div>
@@ -309,7 +309,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-red-500/20 bg-red-500/[0.06] p-5">
+              <div className="rounded-[1.5rem] border border-red-500/20 bg-red-500/[0.06] p-4 sm:rounded-[1.75rem] sm:p-5">
                 <div className="mb-4 flex items-center gap-3 text-red-500">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-500/10">
                     <Database size={20} />

@@ -198,7 +198,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
 
   if (!term || !program) {
     return (
-      <div className="glass-panel mb-8 overflow-hidden rounded-[2rem] border border-primary/10 p-6 sm:p-8">
+      <div className="glass-panel mb-8 overflow-hidden rounded-[1.5rem] border border-primary/10 p-5 sm:rounded-[2rem] sm:p-8">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary">
@@ -221,11 +221,11 @@ const SvuBrowser = ({ onVideoSelect }) => {
   }
 
   return (
-    <div className="glass-panel relative mb-8 overflow-hidden rounded-[2rem] p-6 sm:p-8">
+    <div className="glass-panel relative mb-8 overflow-hidden rounded-[1.5rem] p-4 sm:rounded-[2rem] sm:p-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(234,51,35,0.08),_transparent_24%),radial-gradient(circle_at_bottom_left,_rgba(28,61,90,0.08),_transparent_28%)] pointer-events-none" />
 
       <div className="relative z-10">
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-orange-500 text-white shadow-lg">
               <Search size={22} strokeWidth={2.4} />
@@ -238,7 +238,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-black/5 px-4 py-3 text-sm font-bold text-text-light-secondary dark:bg-white/5 dark:text-text-dark-secondary">
+          <div className="w-full rounded-2xl bg-black/5 px-4 py-3 text-sm font-bold text-text-light-secondary dark:bg-white/5 dark:text-text-dark-secondary md:w-auto">
             <span dir="auto">{term} • {program}</span>
           </div>
         </div>
@@ -255,7 +255,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
           </div>
         )}
 
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3 md:gap-5">
           <div className="relative">
             <select value={selectedCourse} onChange={handleCourseChange} disabled={!courses.length || !!loadingAction} className={selectClassBase}>
               <option value="">1. اختر المادة</option>
@@ -298,8 +298,8 @@ const SvuBrowser = ({ onVideoSelect }) => {
         )}
 
         {sessions.length > 0 && !loadingAction && (
-          <div className="mt-8 animate-in fade-in slide-in-from-bottom-4">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 sm:mt-8">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-lg font-black">الجلسات المتاحة</h3>
               <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-black text-primary">{sessions.length}</span>
             </div>
@@ -309,7 +309,7 @@ const SvuBrowser = ({ onVideoSelect }) => {
                 <button
                   key={session.id}
                   onClick={() => handleSessionClick(session)}
-                  className={`rounded-[1.5rem] border p-4 text-start transition-all active:scale-[0.98] ${
+                  className={`rounded-[1.35rem] border p-4 text-start transition-all active:scale-[0.98] sm:rounded-[1.5rem] ${
                     selectedSession?.id === session.id
                       ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
                       : 'border-black/5 bg-black/5 hover:border-primary/30 hover:bg-black/10 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'

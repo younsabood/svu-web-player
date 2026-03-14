@@ -9,9 +9,13 @@ import Watch from './components/Watch/Watch';
 import Exports from './components/Exports/Exports';
 import { useAppStore } from './store/useAppStore';
 import OnboardingModal from './components/Settings/OnboardingModal';
+import GuideTabs from './components/Guide/GuideTabs';
+import { DEFAULT_GUIDE_BY_VIEW } from './components/Guide/guideConfig';
 
 function App() {
   const initPersistentData = useAppStore(state => state.initPersistentData);
+  const setSidebarOpen = useAppStore(state => state.setSidebarOpen);
+  const setActiveGuideId = useAppStore(state => state.setActiveGuideId);
   const [currentView, setCurrentView] = useState('home'); 
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -25,29 +29,48 @@ function App() {
     document.documentElement.dir = 'rtl';
   }, []);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    const syncSidebar = (event) => {
+      setSidebarOpen(event.matches);
+    };
+
+    syncSidebar(mediaQuery);
+    mediaQuery.addEventListener('change', syncSidebar);
+    return () => mediaQuery.removeEventListener('change', syncSidebar);
+  }, [setSidebarOpen]);
+
+  const handleViewChange = (view, guideId = DEFAULT_GUIDE_BY_VIEW[view]) => {
+    setCurrentView(view);
+    if (guideId) {
+      setActiveGuideId(guideId);
+    }
+  };
+
   const handleVideoSelect = (file) => {
     setSelectedFile(file);
-    setCurrentView('watch');
+    handleViewChange('watch', 'guide-watch');
   };
 
   const handleGoHome = () => {
-    setCurrentView('home');
     setSelectedFile(null);
+    handleViewChange('home', 'guide-home');
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-light dark:bg-bg-dark text-text-light-primary dark:text-text-dark-primary transition-colors duration-500">
+    <div className="flex min-h-[100dvh] flex-col overflow-hidden bg-bg-light text-text-light-primary transition-colors duration-500 dark:bg-bg-dark dark:text-text-dark-primary">
       <OnboardingModal />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       
       <Navbar onGoHome={handleGoHome} onOpenSettings={() => setIsSettingsOpen(true)} />
       
-      <div className="flex flex-1 overflow-hidden relative w-full">
-        <Sidebar onViewChange={setCurrentView} currentView={currentView} />
+      <div className="relative flex flex-1 overflow-hidden">
+        <Sidebar onViewChange={handleViewChange} currentView={currentView} />
         
-        <main className="flex-1 overflow-y-auto overflow-x-hidden w-full relative scroll-smooth bg-gradient-to-br from-bg-light via-bg-light to-primary/5 dark:from-bg-dark dark:via-bg-dark dark:to-primary/10 transition-all duration-500">
-          <div className="relative z-10 w-full h-full p-3 md:p-8 pb-32 md:pb-20">
-            {currentView === 'home' && <HomeFeed onVideoSelect={handleVideoSelect} onViewChange={setCurrentView} />}
+        <main className="relative w-full flex-1 overflow-y-auto overflow-x-hidden scroll-smooth bg-transparent transition-all duration-500">
+          <div className="relative z-10 mx-auto h-full w-full max-w-[1680px] px-3 pb-24 pt-3 sm:px-4 sm:pb-28 sm:pt-4 lg:px-8 lg:pb-20 lg:pt-6">
+            <GuideTabs currentView={currentView} onNavigate={handleViewChange} hasSelectedFile={!!selectedFile} />
+            {currentView === 'home' && <HomeFeed onVideoSelect={handleVideoSelect} onViewChange={handleViewChange} />}
             {currentView === 'explore' && <Explore onVideoSelect={handleVideoSelect} />}
             {currentView === 'classes' && <SubscriptionsManager />}
             {currentView === 'watch' && <Watch file={selectedFile} />}

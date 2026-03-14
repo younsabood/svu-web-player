@@ -38,18 +38,18 @@ const VideoCard = ({ video, onSelect, onDelete }) => {
   }, [video]);
   
   return (
-    <div 
-      className="flex flex-col gap-3 group cursor-pointer w-full"
+    <div
+      className="group flex w-full cursor-pointer flex-col gap-3"
       onClick={() => onSelect(video)}
     >
-      <div className={`relative w-full aspect-video sm:rounded-xl bg-gradient-to-br ${gradient} overflow-hidden shadow-md sm:shadow-lg group-hover:shadow-primary/20 transition-all duration-300 ring-1 ring-black/5 dark:ring-white/5`}>
+      <div className={`relative w-full aspect-video overflow-hidden rounded-[1.35rem] bg-gradient-to-br ${gradient} shadow-md transition-all duration-300 ring-1 ring-black/5 group-hover:shadow-primary/20 sm:rounded-[1.1rem] sm:shadow-lg dark:ring-white/5`}>
         {typeof onDelete === 'function' && (
           <button
             onClick={(event) => {
               event.stopPropagation();
               onDelete(video);
             }}
-            className="absolute top-2 left-2 z-20 flex h-9 w-9 items-center justify-center rounded-xl bg-black/70 text-white opacity-0 transition-all hover:bg-red-500 group-hover:opacity-100"
+            className="absolute left-2 top-2 z-20 flex h-9 w-9 items-center justify-center rounded-xl bg-black/70 text-white opacity-100 transition-all hover:bg-red-500 sm:opacity-0 sm:group-hover:opacity-100"
             title="حذف الملف"
           >
             <Trash2 size={16} />
@@ -62,8 +62,8 @@ const VideoCard = ({ video, onSelect, onDelete }) => {
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
         )}
         
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-all duration-300">
-          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-300 shadow-xl shadow-primary/20">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-all duration-300 sm:bg-black/0 sm:group-hover:bg-black/30">
+          <div className="flex h-11 w-11 scale-100 items-center justify-center rounded-full bg-primary/90 backdrop-blur-sm opacity-100 shadow-xl shadow-primary/20 transition-all duration-300 sm:h-14 sm:w-14 sm:scale-75 sm:opacity-0 sm:group-hover:scale-100 sm:group-hover:opacity-100">
             <svg className="w-6 h-6 md:w-7 md:h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           </div>
         </div>
@@ -82,8 +82,8 @@ const VideoCard = ({ video, onSelect, onDelete }) => {
         </div>
       </div>
 
-      <div className="flex gap-3 px-3 sm:px-0 pr-2">
-        <div className={`w-9 h-9 md:w-10 md:h-10 rounded-full sm:rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-sm md:text-base shrink-0 shadow-sm border border-white/10`}>
+      <div className="flex gap-3 px-1 sm:px-0">
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br ${gradient} text-sm font-bold text-white shadow-sm sm:h-10 sm:w-10 sm:rounded-xl md:text-base`}>
           {video.teacher ? video.teacher.charAt(0) : 'د'}
         </div>
         <div className="flex flex-col overflow-hidden">
@@ -114,7 +114,7 @@ const VideoGrid = ({ videos, onVideoSelect, onDeleteVideo }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-6 sm:gap-x-4 sm:gap-y-10 -mx-3 sm:mx-0">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
       {videos.map((vid, i) => (
         <VideoCard key={vid.id || i} video={vid} onSelect={onVideoSelect} onDelete={onDeleteVideo} />
       ))}

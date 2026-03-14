@@ -68,8 +68,8 @@ const OnboardingModal = () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#050505] p-4 backdrop-blur-xl">
-      <div className="mx-auto flex h-full max-w-6xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#0c0c0c] shadow-2xl shadow-black/60">
+    <div className="fixed inset-0 z-[100] bg-[#050505] p-0 backdrop-blur-xl md:p-4">
+      <div className="mx-auto flex h-full max-w-6xl overflow-hidden rounded-none border border-white/10 bg-[#0c0c0c] shadow-2xl shadow-black/60 md:rounded-[2.5rem]">
         <div className="relative hidden flex-1 overflow-hidden md:flex">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(234,51,35,0.38),_transparent_32%),radial-gradient(circle_at_bottom_left,_rgba(28,61,90,0.38),_transparent_30%),linear-gradient(160deg,_#111_0%,_#070707_100%)]" />
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
@@ -111,9 +111,22 @@ const OnboardingModal = () => {
           </div>
         </div>
 
-        <div className="flex w-full flex-col justify-between bg-white p-6 dark:bg-[#101010] md:w-[480px] md:p-8">
+        <div className="flex w-full flex-col justify-between bg-white p-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] dark:bg-[#101010] md:w-[480px] md:p-8">
           <div>
-            <div className="mb-8 flex items-center gap-4">
+            <div className="mb-6 rounded-[1.5rem] bg-[linear-gradient(135deg,_rgba(234,51,35,0.10),_rgba(28,61,90,0.08))] p-4 md:hidden">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black tracking-[0.18em] text-primary">
+                <Sparkles size={13} />
+                SVU PLAYER
+              </div>
+              <h1 className="mt-3 text-2xl font-black leading-tight">
+                إعداد سريع يجعل باقي الواجهات أوضح على الهاتف.
+              </h1>
+              <p className="mt-2 text-sm font-medium leading-7 text-text-light-secondary dark:text-text-dark-secondary">
+                اختر الفصل والبرنامج مرة واحدة، ثم ابدأ التصفح والمشاهدة بدون تشتت.
+              </p>
+            </div>
+
+            <div className="mb-8 flex items-start gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary">
                 <GraduationCap size={26} />
               </div>

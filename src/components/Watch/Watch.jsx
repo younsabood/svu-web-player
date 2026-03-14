@@ -107,28 +107,28 @@ const Watch = ({ file }) => {
 
   if (!file) {
     return (
-      <div className="w-full h-[60vh] flex items-center justify-center text-text-light-secondary dark:text-text-dark-secondary font-bold text-xl">
+      <div className="flex h-[52vh] w-full items-center justify-center rounded-[1.5rem] border border-black/5 bg-black/5 px-6 text-center text-lg font-bold text-text-light-secondary dark:border-white/10 dark:bg-white/5 dark:text-text-dark-secondary sm:h-[60vh] sm:text-xl">
         قم باختيار محاضرة للبدء
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col xl:flex-row gap-6 mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div data-guide-id="watch-player" className="mx-auto flex max-w-7xl flex-col gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500 sm:gap-6 xl:flex-row">
       <div className="flex-1 min-w-0">
         
         {error ? (
-          <div className="w-full aspect-video bg-red-500/10 flex items-center justify-center text-red-500 rounded-xl mb-4 font-bold p-8 text-center shadow-inner">
+          <div className="mb-4 flex aspect-[4/3] w-full items-center justify-center rounded-[1.5rem] bg-red-500/10 p-6 text-center font-bold text-red-500 shadow-inner sm:aspect-video sm:p-8">
             {error}
           </div>
         ) : downloadProgress ? (
-          <div className="w-full aspect-video bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center rounded-xl mb-4 border border-border-light dark:border-border-dark shadow-inner p-8">
-            <div className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin mb-6"></div>
-            <h2 className="text-xl font-bold mb-2 text-primary" dir="ltr">{downloadProgress.text}</h2>
-            <div className="w-full max-w-md bg-black/10 dark:bg-white/10 rounded-full h-3 overflow-hidden mt-2">
+          <div className="mb-4 flex aspect-[4/3] w-full flex-col items-center justify-center rounded-[1.5rem] border border-border-light bg-black/5 p-6 shadow-inner dark:border-border-dark dark:bg-white/5 sm:aspect-video sm:p-8">
+            <div className="mb-5 h-14 w-14 animate-spin rounded-full border-4 border-primary border-t-transparent sm:mb-6 sm:h-16 sm:w-16"></div>
+            <h2 className="mb-2 text-lg font-bold text-primary sm:text-xl" dir="ltr">{downloadProgress.text}</h2>
+            <div className="mt-2 h-3 w-full max-w-md overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
                <div className="bg-primary h-full transition-all duration-300 ease-out" style={{ width: `${downloadProgress.perc}%` }}></div>
             </div>
-            <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary mt-4 font-medium">
+            <p className="mt-4 text-center text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
               جاري جلب ملفات المحاضرة بشكل آمن...
             </p>
           </div>
@@ -136,11 +136,11 @@ const Watch = ({ file }) => {
           <CustomPlayer fileInfo={playableFile} />
         ) : null}
         
-          <div className="mt-4 flex flex-col items-start gap-2">
-            <h1 className="text-xl md:text-2xl font-bold line-clamp-2 leading-tight text-text-light-primary dark:text-text-dark-primary" dir="auto">
+          <div className="glass-panel mt-4 flex flex-col items-start gap-3 rounded-[1.5rem] p-4 sm:p-5">
+            <h1 className="line-clamp-2 text-xl font-bold leading-tight text-text-light-primary dark:text-text-dark-primary md:text-2xl" dir="auto">
               {file.title || file.name || 'محاضرة غير معروفة'}
             </h1>
-            <div className="text-sm font-bold text-text-light-secondary dark:text-text-dark-secondary bg-black/5 dark:bg-white/10 px-3 py-1 rounded-md">
+            <div className="rounded-xl bg-black/5 px-3 py-2 text-sm font-bold text-text-light-secondary dark:bg-white/10 dark:text-text-dark-secondary">
               {file.subject || 'الجامعة الافتراضية السورية'}
             </div>
           </div>

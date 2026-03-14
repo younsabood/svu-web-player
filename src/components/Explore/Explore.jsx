@@ -122,13 +122,15 @@ const Explore = ({ onVideoSelect }) => {
   };
 
   return (
-    <div className="flex flex-col gap-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
-      <SvuBrowser onVideoSelect={onVideoSelect} />
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 animate-in fade-in duration-500 sm:gap-8">
+      <div data-guide-id="explore-browser">
+        <SvuBrowser onVideoSelect={onVideoSelect} />
+      </div>
       
-      {/* Filters & Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border-b border-border-light dark:border-border-dark pb-4">
+      <div data-guide-id="explore-library" className="space-y-5">
+      <div className="flex flex-col items-start justify-between gap-4 border-b border-border-light pb-4 dark:border-border-dark sm:flex-row sm:items-center">
         
-        <div className="flex gap-3 overflow-x-auto w-full sm:w-auto scrollbar-hide px-1">
+        <div className="scrollbar-hide flex w-full gap-3 overflow-x-auto px-1 sm:w-auto">
           {filters.map(filter => (
             <FilterPill 
               key={filter} 
@@ -139,7 +141,7 @@ const Explore = ({ onVideoSelect }) => {
           ))}
         </div>
 
-        <label className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap bg-primary text-white cursor-pointer hover:bg-primary-hover shadow-lg shadow-primary/30 transition-all active:scale-95 w-full sm:w-auto">
+        <label className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-all active:scale-95 hover:bg-primary-hover sm:w-auto">
           <FolderOpen size={18} />
           <span>فتح ملف .lrec محلي</span>
           <input type="file" accept=".lrec" className="hidden" onChange={handleLocalFileDrop} />
@@ -155,10 +157,10 @@ const Explore = ({ onVideoSelect }) => {
           onDeleteVideo={handleDeleteOfflineVideo}
         />
       ) : (
-        <div className="flex flex-col items-center justify-center h-[40vh] text-center glass-panel rounded-3xl m-2 sm:m-4 p-8">
-           <FolderOpen className="w-16 h-16 text-text-light-secondary/30 dark:text-text-dark-secondary/30 mb-4" />
-           <h2 className="text-xl sm:text-2xl font-black mb-2 text-text-light-secondary dark:text-text-dark-secondary">لا توجد فيديوهات محفوظة</h2>
-           <p className="text-sm font-medium text-text-light-secondary/70 dark:text-text-dark-secondary/70 max-w-sm">
+        <div className="glass-panel flex h-[34vh] flex-col items-center justify-center rounded-[1.5rem] p-6 text-center sm:h-[40vh] sm:rounded-3xl sm:p-8">
+           <FolderOpen className="mb-4 h-14 w-14 text-text-light-secondary/30 dark:text-text-dark-secondary/30 sm:h-16 sm:w-16" />
+           <h2 className="mb-2 text-xl font-black text-text-light-secondary dark:text-text-dark-secondary sm:text-2xl">لا توجد فيديوهات محفوظة</h2>
+           <p className="max-w-sm text-sm font-medium text-text-light-secondary/70 dark:text-text-dark-secondary/70">
              الفيديوهات التي تقوم بتشغيلها أو تنزيلها ستظهر هنا لمشاهدتها بدون إنترنت. يمكنك أيضاً فتح ملف محلي مباشرة.
            </p>
            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/5 px-4 py-2 text-xs font-black text-text-light-secondary dark:bg-white/5 dark:text-text-dark-secondary">
@@ -167,6 +169,7 @@ const Explore = ({ onVideoSelect }) => {
            </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

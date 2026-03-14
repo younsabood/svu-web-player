@@ -29,8 +29,9 @@
   body {
     @apply bg-bg-light text-text-light-primary font-sans antialiased m-0 overflow-x-hidden selection:bg-primary/30 selection:text-primary transition-colors duration-500 ease-in-out;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(var(--primary-rgb), 0.04) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(28, 61, 90, 0.03) 0px, transparent 50%);
+      linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(248,250,252,0.96) 100%),
+      radial-gradient(circle at top left, rgba(var(--primary-rgb), 0.05) 0px, transparent 28%),
+      radial-gradient(circle at top right, rgba(28, 61, 90, 0.04) 0px, transparent 24%);
     background-attachment: fixed;
   }
 
@@ -38,9 +39,9 @@
   .dark body {
     @apply bg-bg-dark text-text-dark-primary selection:bg-primary/40 selection:text-white;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(var(--primary-rgb), 0.06) 0px, transparent 40%),
-      radial-gradient(at 100% 100%, rgba(28, 61, 90, 0.08) 0px, transparent 40%),
-      radial-gradient(at 50% 50%, rgba(255, 255, 255, 0.01) 0px, transparent 60%);
+      linear-gradient(180deg, rgba(9,9,11,0.95) 0%, rgba(9,9,11,1) 100%),
+      radial-gradient(circle at top left, rgba(var(--primary-rgb), 0.08) 0px, transparent 30%),
+      radial-gradient(circle at bottom right, rgba(28, 61, 90, 0.1) 0px, transparent 28%);
     background-attachment: fixed;
   }
 
@@ -70,11 +71,11 @@
 
 @layer utilities {
   .glass-panel {
-    @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)];
+    @apply border border-black/5 bg-white/88 backdrop-blur-md shadow-[0_12px_40px_rgba(15,23,42,0.05)] dark:border-white/8 dark:bg-[#111318]/88 dark:shadow-[0_12px_40px_rgba(0,0,0,0.16)];
   }
   
   .glass-button {
-    @apply bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-md border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300 active:scale-95;
+    @apply border border-black/5 bg-white/72 shadow-sm transition-all duration-300 active:scale-95 hover:bg-white dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/10;
   }
   
   .text-glow {
@@ -93,8 +94,47 @@
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  .hide-scrollbar {
+  .hide-scrollbar,
+  .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+
+  .guide-focus {
+    @apply relative ring-2 ring-primary/45 ring-offset-4 ring-offset-bg-light dark:ring-primary/40 dark:ring-offset-bg-dark;
+    box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.08), 0 20px 48px rgba(var(--primary-rgb), 0.12);
+    animation: guide-pulse 1.8s ease-in-out infinite;
+    scroll-margin-top: 7rem;
+  }
+
+  .guide-focus::after {
+    content: "التركيز هنا";
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(var(--primary-rgb), 0.12);
+    color: rgb(var(--primary-rgb));
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+
+  @keyframes guide-pulse {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
   }
 }

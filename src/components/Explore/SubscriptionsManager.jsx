@@ -150,7 +150,7 @@ const SubscriptionsManager = () => {
 
   if (!term || !program) {
     return (
-      <div className="glass-panel rounded-[2rem] p-8">
+      <div data-guide-id="classes-builder" className="glass-panel rounded-[1.5rem] p-5 sm:rounded-[2rem] sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary">
@@ -170,8 +170,8 @@ const SubscriptionsManager = () => {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 pb-10">
-      <div className="overflow-hidden rounded-[2rem] border border-black/5 bg-gradient-to-br from-white via-white to-primary/5 p-6 shadow-sm dark:border-white/10 dark:from-[#151515] dark:via-[#131313] dark:to-primary/10 sm:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 pb-10 sm:space-y-8">
+      <div className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-gradient-to-br from-white via-white to-primary/5 p-5 shadow-sm dark:border-white/10 dark:from-[#151515] dark:via-[#131313] dark:to-primary/10 sm:rounded-[2rem] sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-orange-500 text-white shadow-lg shadow-primary/20">
@@ -185,14 +185,14 @@ const SubscriptionsManager = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-black/5 px-4 py-3 text-sm font-black text-text-light-secondary dark:bg-white/5 dark:text-text-dark-secondary">
+          <div className="w-full rounded-2xl bg-black/5 px-4 py-3 text-sm font-black text-text-light-secondary dark:bg-white/5 dark:text-text-dark-secondary md:w-auto">
             {term} • {program} • {subscriptions.length} اشتراك
           </div>
         </div>
       </div>
 
-      <div className="glass-panel rounded-[2rem] p-6 sm:p-8">
-        <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="glass-panel rounded-[1.5rem] p-5 sm:rounded-[2rem] sm:p-8">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-xl font-black">إضافة مادة جديدة</h2>
             <p className="mt-1 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
@@ -200,7 +200,7 @@ const SubscriptionsManager = () => {
             </p>
           </div>
           {loadingAction && (
-            <div className="flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-black text-primary">
+            <div className="flex w-full items-center gap-2 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-black text-primary lg:w-auto">
               <Loader2 size={16} className="animate-spin" />
               {loadingAction}
             </div>
@@ -219,7 +219,7 @@ const SubscriptionsManager = () => {
           </div>
         )}
 
-        <div className="grid gap-5 md:grid-cols-12 md:items-end">
+        <div className="grid gap-4 md:grid-cols-12 md:items-end md:gap-5">
           <div className="space-y-2 md:col-span-3">
             <label className="block text-xs font-black uppercase tracking-[0.2em] text-text-light-secondary dark:text-text-dark-secondary">
               المادة
@@ -290,7 +290,7 @@ const SubscriptionsManager = () => {
       </div>
 
       <div>
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-center justify-between gap-3">
           <h2 className="text-xl font-black">المواد المشترَك بها</h2>
           <span className="rounded-full bg-black/5 px-3 py-1 text-sm font-black dark:bg-white/10">{subscriptions.length}</span>
         </div>
@@ -302,11 +302,11 @@ const SubscriptionsManager = () => {
             <p className="mt-2 text-sm font-medium">أضف أول مادة من النموذج أعلاه لتبدأ الصفحة الرئيسية بعرض الجلسات الجديدة.</p>
           </div>
         ) : (
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-5">
             {subscriptions.map((subscription) => (
               <div
                 key={subscription.classId}
-                className="group relative overflow-hidden rounded-[1.75rem] border border-black/5 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 dark:border-white/10 dark:bg-[#151515]"
+                className="group relative overflow-hidden rounded-[1.5rem] border border-black/5 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 dark:border-white/10 dark:bg-[#151515] sm:rounded-[1.75rem] sm:p-6"
               >
                 <div className="absolute left-0 top-0 h-24 w-24 rounded-br-full bg-primary/6 transition-colors group-hover:bg-primary/10" />
 
@@ -320,7 +320,7 @@ const SubscriptionsManager = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="rounded-2xl bg-black/5 px-3 py-2 text-xs font-black dark:bg-white/10">
                       {subscription.className}
                     </div>

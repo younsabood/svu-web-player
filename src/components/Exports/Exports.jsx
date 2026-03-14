@@ -14,18 +14,18 @@ const Exports = () => {
 
   if (activeExports.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] text-center max-w-lg mx-auto animate-in fade-in duration-700 p-6">
-        <div className="relative mb-10">
+      <div className="mx-auto flex h-[60vh] max-w-lg flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700 sm:h-[70vh]">
+        <div className="relative mb-8 sm:mb-10">
           <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center border-4 border-white/20 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
-            <HardDriveDownload className="w-16 h-16 text-white" strokeWidth={1.5} />
+          <div className="relative flex h-24 w-24 items-center justify-center rounded-[2rem] border-4 border-white/20 bg-gradient-to-br from-primary to-orange-500 shadow-2xl transition-transform duration-500 hover:rotate-0 sm:h-32 sm:w-32 sm:rounded-[2.5rem] sm:rotate-3">
+            <HardDriveDownload className="h-12 w-12 text-white sm:h-16 sm:w-16" strokeWidth={1.5} />
           </div>
-          <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-2xl bg-bg-dark border-4 border-bg-light dark:border-bg-dark flex items-center justify-center shadow-lg">
-            <Activity className="w-6 h-6 text-primary animate-pulse" />
+          <div className="absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-2xl border-4 border-bg-light bg-bg-dark shadow-lg dark:border-bg-dark sm:h-12 sm:w-12">
+            <Activity className="h-5 w-5 animate-pulse text-primary sm:h-6 sm:w-6" />
           </div>
         </div>
         
-        <h2 className="text-3xl font-black tracking-tight mb-4 gradient-text">محرك التصدير جاهز</h2>
+        <h2 className="mb-3 text-2xl font-black tracking-tight gradient-text sm:mb-4 sm:text-3xl">محرك التصدير جاهز</h2>
         <p className="text-text-light-secondary dark:text-text-dark-secondary font-medium leading-relaxed max-w-md">
           لم تقم ببدء أي عملية تصدير بعد. يمكنك تحويل محاضراتك إلى مقاطع MP4 عالية الجودة من خلال زر التصدير في المشغل.
         </p>
@@ -42,7 +42,7 @@ const Exports = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-6 md:py-10 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-6 duration-700 space-y-8">
+    <div data-guide-id="exports-queue" className="mx-auto max-w-5xl space-y-6 px-1 py-4 animate-in fade-in slide-in-from-bottom-6 duration-700 sm:px-0 md:space-y-8 md:py-10">
       
       {/* Dashboard Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -77,18 +77,18 @@ const Exports = () => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight">
             قائمة التصدير
             <span className="text-xs bg-black/5 dark:bg-white/10 px-2 py-1 rounded-md opacity-60 font-bold">{activeExports.length}</span>
           </h1>
         </div>
         
         {activeExports.some(t => t.status === 'completed' || t.status === 'error') && (
-          <button 
+          <button
             onClick={clearCompleted}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all active:scale-95"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-500 transition-all active:scale-95 hover:bg-red-500/20 sm:w-auto"
           >
             <Trash2 size={14} /> مسح الكل
           </button>
@@ -99,12 +99,12 @@ const Exports = () => {
         {activeExports.map((task, idx) => (
           <div 
             key={task.id} 
-            className={`glass-panel p-1 rounded-[2rem] relative overflow-hidden group transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 active:scale-[0.99] ${task.status === 'completed' ? 'border-green-500/20' : ''}`}
+            className={`glass-panel relative overflow-hidden rounded-[1.5rem] p-1 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 active:scale-[0.99] sm:rounded-[2rem] ${task.status === 'completed' ? 'border-green-500/20' : ''}`}
             style={{ animationDelay: `${idx * 150}ms` }}
           >
-            <div className="p-5 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+            <div className="relative z-10 flex flex-col gap-5 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-7">
               
-              <div className="flex items-center gap-5 flex-1 min-w-0 w-full lg:w-auto">
+              <div className="flex w-full min-w-0 flex-col gap-4 sm:w-auto sm:flex-1 sm:flex-row sm:items-center sm:gap-5">
                 <div className={`w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center border-2 transition-transform duration-500 group-hover:scale-110 ${
                   task.status === 'processing' ? 'bg-primary/10 border-primary/20 text-primary' :
                   task.status === 'completed' ? 'bg-green-500/10 border-green-500/20 text-green-500' :
@@ -138,7 +138,7 @@ const Exports = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center sm:items-end gap-3 w-full sm:w-auto shrink-0">
+              <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:items-end">
                 {task.status === 'processing' && (
                   <div className="w-full sm:w-48">
                     <div className="flex justify-between items-end mb-2">
@@ -154,11 +154,11 @@ const Exports = () => {
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 w-full">
+                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
                   {task.status === 'processing' && (
                     <button 
                       onClick={() => cancelExport(task.id)}
-                      className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl border border-border-light dark:border-border-dark text-xs font-black uppercase tracking-widest hover:bg-black/5 dark:hover:bg-white/5 transition-all active:scale-95"
+                      className="w-full rounded-xl border border-border-light px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all active:scale-95 hover:bg-black/5 dark:border-border-dark dark:hover:bg-white/5 sm:w-auto"
                     >
                       إلغاء
                     </button>
@@ -172,7 +172,7 @@ const Exports = () => {
                     </button>
                   )}
                   {task.status === 'error' && (
-                    <div className="text-xs font-bold text-red-500 bg-red-500/10 px-4 py-2 rounded-xl border border-red-500/20 max-w-[200px] truncate" dir="ltr">
+                    <div className="max-w-full truncate rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-500 sm:max-w-[200px]" dir="ltr">
                       Error: {task.error}
                     </div>
                   )}
@@ -189,4 +189,4 @@ const Exports = () => {
   );
 };
 
-export default Exports;
+export default Exports;

@@ -14,6 +14,7 @@ export const useAppStore = create((set, get) => ({
   isSidebarOpen: true,
   searchQuery: '',
   theme: 'dark', // 'dark' | 'light'
+  activeGuideId: 'guide-home',
   
   // Data State
   lectures: [], 
@@ -22,6 +23,8 @@ export const useAppStore = create((set, get) => ({
   
   // Actions
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  setSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
+  setActiveGuideId: (activeGuideId) => set({ activeGuideId }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setLectures: (data) => set({ lectures: data }),
   

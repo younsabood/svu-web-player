@@ -30,9 +30,9 @@ const getGradientFromString = (text) => {
 };
 
 const QuickStat = ({ label, value }) => (
-  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-xl">
-    <div className="text-xs font-black uppercase tracking-[0.18em] text-white/60">{label}</div>
-    <div className="mt-2 text-2xl font-black text-white" dir="auto">{value}</div>
+  <div className="rounded-[1.2rem] border border-black/5 bg-white/75 px-4 py-3.5 dark:border-white/8 dark:bg-white/5 sm:rounded-[1.35rem] sm:px-5">
+    <div className="text-[11px] font-black tracking-[0.14em] text-text-light-secondary dark:text-text-dark-secondary sm:text-xs">{label}</div>
+    <div className="mt-2 text-base font-black text-text-light-primary dark:text-text-dark-primary sm:text-2xl" dir="auto">{value}</div>
   </div>
 );
 
@@ -295,14 +295,14 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
   const gradient = getGradientFromString(subscription.courseName);
 
   return (
-    <div className="mb-12">
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-xl font-black text-white shadow-lg`}>
+    <div className="mb-10 sm:mb-12">
+      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-lg font-black text-white shadow-lg sm:h-12 sm:w-12 sm:text-xl`}>
             {(subscription.tutorName || 'S').charAt(0)}
           </div>
-          <div>
-            <h2 className="flex items-center gap-2 text-xl font-black sm:text-2xl" dir="auto">
+          <div className="min-w-0">
+            <h2 className="flex flex-wrap items-center gap-2 text-lg font-black sm:text-2xl" dir="auto">
               {subscription.courseName}
               <Sparkles size={16} className="text-primary" />
             </h2>
@@ -316,29 +316,29 @@ const ChannelRow = ({ subscription, onVideoSelect, refreshTrigger }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 pb-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 pb-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {sessions.map((video) => (
           <button
             key={video.id}
             onClick={() => handleCardClick(video)}
             className="group w-full text-start"
           >
-            <div className={`relative mb-3 aspect-video overflow-hidden rounded-[1.75rem] bg-gradient-to-br ${gradient} ring-1 ring-black/5 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/20 dark:ring-white/5`}>
+            <div className={`relative mb-3 aspect-video overflow-hidden rounded-[1.35rem] bg-gradient-to-br ${gradient} ring-1 ring-black/5 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/20 sm:rounded-[1.75rem] dark:ring-white/5`}>
               <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }} />
               <div className="absolute inset-0 bg-black/0 transition-all duration-300 group-hover:bg-black/25" />
               <div className="absolute inset-0 flex items-center justify-center">
                 {loadingVideoId === video.id ? (
-                  <Loader2 className="h-10 w-10 animate-spin text-white" />
+                  <Loader2 className="h-9 w-9 animate-spin text-white sm:h-10 sm:w-10" />
                 ) : (
-                  <div className="flex h-14 w-14 scale-75 items-center justify-center rounded-full bg-primary/90 text-white opacity-0 transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
+                  <div className="flex h-11 w-11 scale-100 items-center justify-center rounded-full bg-primary/90 text-white opacity-100 transition-all duration-300 sm:h-14 sm:w-14 sm:scale-75 sm:opacity-0 sm:group-hover:scale-100 sm:group-hover:opacity-100">
                     <Play className="mr-[-2px] h-6 w-6 fill-current" />
                   </div>
                 )}
               </div>
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent p-4">
-                <h3 className="line-clamp-2 text-lg font-black leading-tight text-white" dir="auto">{subscription.courseName}</h3>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent p-3 sm:p-4">
+                <h3 className="line-clamp-2 text-base font-black leading-tight text-white sm:text-lg" dir="auto">{subscription.courseName}</h3>
               </div>
-              <div className="absolute right-3 top-3 rounded-full bg-black/55 px-2 py-1 text-[11px] font-black text-white" dir="ltr">{video.date}</div>
+              <div className="absolute right-3 top-3 rounded-full bg-black/55 px-2 py-1 text-[10px] font-black text-white sm:text-[11px]" dir="ltr">{video.date}</div>
             </div>
 
             <h3 className="line-clamp-2 pr-1 text-sm font-black leading-6 transition-colors group-hover:text-primary sm:text-base" dir="auto">
@@ -408,40 +408,40 @@ const HomeFeed = ({ onVideoSelect, onViewChange }) => {
   }
 
   return (
-    <div className="mx-auto flex max-w-[1600px] flex-col gap-6">
-      <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,_#142132_0%,_#0f1117_42%,_#52160f_100%)] p-6 text-white shadow-2xl shadow-black/15 sm:p-8">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+    <div className="mx-auto flex max-w-[1600px] flex-col gap-5 sm:gap-6">
+      <section data-guide-id="home-overview" className="glass-panel relative overflow-hidden rounded-[1.5rem] p-5 sm:rounded-[2rem] sm:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(234,51,35,0.10),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(28,61,90,0.10),_transparent_32%)]" />
         <div className="relative z-10">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black tracking-[0.22em] text-white/80">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 text-[10px] font-black tracking-[0.18em] text-primary sm:px-4 sm:text-xs">
                 <BookMarked size={14} />
                 لوحة محاضراتك
               </div>
-              <h1 className="mt-5 text-3xl font-black leading-tight sm:text-4xl">
-                الصفحة الرئيسية أصبحت مرتبطة مباشرة بخطتك الدراسية الحالية.
+              <h1 className="mt-4 text-2xl font-black leading-tight text-text-light-primary dark:text-text-dark-primary sm:mt-5 sm:text-4xl">
+                تحكم أوضح وأخف بين موادك وجلساتك.
               </h1>
-              <p className="mt-4 max-w-2xl text-sm font-medium leading-7 text-white/75 sm:text-base">
-                كل صف أدناه يمثل مادة مشتركًا بها. اضغط على أي جلسة ليتم تشغيلها مباشرة أو تحميلها إلى التخزين المحلي.
+              <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-text-light-secondary dark:text-text-dark-secondary sm:mt-4 sm:text-base">
+                راجع المواد المشتركة، شغّل آخر جلسة بسرعة، أو انتقل إلى إدارة المواد والاستكشاف بدون ازدحام بصري.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="grid w-full gap-3 min-[520px]:grid-cols-2 lg:flex lg:w-auto lg:flex-wrap">
               <button
                 onClick={() => onViewChange?.('classes')}
-                className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition-transform hover:-translate-y-0.5"
+                className="w-full rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(234,51,35,0.18)] transition-colors hover:bg-primary-hover lg:w-auto"
               >
                 إدارة المواد
               </button>
               <button
                 onClick={() => onViewChange?.('explore')}
-                className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur-xl transition-colors hover:bg-white/15"
+                className="glass-button w-full rounded-2xl px-5 py-3 text-sm font-black text-text-light-primary dark:text-text-dark-primary lg:w-auto"
               >
-                استكشاف الملفات المحلية
+                استكشاف الملفات
               </button>
               <button
                 onClick={handleRefresh}
-                className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur-xl transition-colors hover:bg-white/15"
+                className="glass-button flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-text-light-primary dark:text-text-dark-primary sm:col-span-2 lg:w-auto"
               >
                 <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
                 تحديث
@@ -449,7 +449,7 @@ const HomeFeed = ({ onVideoSelect, onViewChange }) => {
             </div>
           </div>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-3 min-[520px]:grid-cols-3 sm:mt-8 sm:gap-4">
             <QuickStat label="الفصل والبرنامج" value={`${term} • ${program}`} />
             <QuickStat label="المواد المشتركة" value={subscriptions.length} />
             <QuickStat label="المحاضرات المحفوظة" value={offlineCount} />
@@ -458,11 +458,11 @@ const HomeFeed = ({ onVideoSelect, onViewChange }) => {
       </section>
 
       {subscriptions.length === 0 ? (
-        <div className="glass-panel flex min-h-[40vh] flex-col items-center justify-center rounded-[2rem] p-8 text-center">
+        <div className="glass-panel flex min-h-[32vh] flex-col items-center justify-center rounded-[1.5rem] p-5 text-center sm:min-h-[40vh] sm:rounded-[2rem] sm:p-8">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
             <FolderOpen className="h-10 w-10" />
           </div>
-          <h2 className="mt-6 text-2xl font-black">قائمتك فارغة حاليًا</h2>
+          <h2 className="mt-5 text-xl font-black sm:mt-6 sm:text-2xl">قائمتك فارغة حاليًا</h2>
           <p className="mt-3 max-w-xl text-sm font-medium leading-7 text-text-light-secondary dark:text-text-dark-secondary">
             أضف المواد من صفحة "موادي" ليبدأ الموقع بتجميع أحدث الجلسات لكل مادة في مكان واحد.
           </p>
@@ -475,10 +475,10 @@ const HomeFeed = ({ onVideoSelect, onViewChange }) => {
         </div>
       ) : (
         <>
-          <div className="flex justify-end">
+          <div className="flex justify-stretch sm:justify-end">
             <button
               onClick={handleRefresh}
-              className={`flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-black text-primary transition-colors hover:bg-primary/15 ${
+              className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-black text-primary transition-colors hover:bg-primary/15 sm:w-auto ${
                 isRefreshing ? 'pointer-events-none opacity-70' : ''
               }`}
             >

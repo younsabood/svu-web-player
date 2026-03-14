@@ -436,14 +436,14 @@ const CustomPlayer = ({ fileInfo }) => {
       )}
 
       {isAudioProcessing && !isLoading && (
-        <div className="absolute top-4 right-4 z-50 bg-black/60 backdrop-blur-md border border-white/10 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 animate-pulse">
+        <div className="absolute right-3 top-3 z-50 flex items-center gap-2 rounded-lg border border-white/10 bg-black/60 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-md animate-pulse sm:right-4 sm:top-4 sm:text-xs">
            <Loader2 size={14} className="animate-spin text-primary" />
            جاري معالجة الصوت بالكامل...
         </div>
       )}
 
       {exportToast && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-lg border border-primary/30 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-4" dir="rtl">
+        <div className="absolute left-1/2 top-3 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-primary/30 bg-black/80 px-4 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur-lg animate-in fade-in slide-in-from-top-4 sm:top-4 sm:text-sm" dir="rtl">
           <Download size={16} className="text-primary animate-bounce" />
           بدأ التصدير في الخلفية
         </div>
@@ -458,7 +458,7 @@ const CustomPlayer = ({ fileInfo }) => {
       </div>
 
       {/* Controls - Kept LTR for UX consistency but translated */}
-      <div className={`absolute bottom-0 left-0 right-0 p-3 md:p-6 pt-12 md:pt-20 bg-gradient-to-t from-black via-black/60 to-transparent z-40 transition-all duration-500 ${showControls || !isPlaying ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+      <div className={`absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-black via-black/60 to-transparent p-3 pt-12 transition-all duration-500 md:p-6 md:pt-20 ${showControls || !isPlaying ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
         
         {/* Progress Bar */}
         <div className="w-full h-1.5 md:h-2 bg-white/20 hover:h-2.5 md:hover:h-3 rounded-full cursor-pointer mb-3 md:mb-6 relative transition-all group/progress" onClick={handleSeek}>
@@ -466,13 +466,17 @@ const CustomPlayer = ({ fileInfo }) => {
            <div className="absolute top-1/2 -mt-2 w-4 h-4 bg-white rounded-full scale-0 group-hover/progress:scale-100 transition-all shadow-xl border-2 border-primary" style={{ left: `calc(${(currentTime / duration) * 100}% - 8px)` }} />
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between text-white/90 gap-3 md:gap-0">
-          <div className="flex items-center justify-between w-full md:w-auto md:gap-6">
-            <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-3 text-white/90 md:flex-row md:items-center md:justify-between md:gap-0">
+          <div className="flex w-full flex-wrap items-center justify-between gap-3 md:w-auto md:gap-6">
+            <div className="flex items-center gap-3 sm:gap-4">
               <button onClick={togglePlay} className="hover:text-primary transition-all active:scale-90">
                 {isPlaying ? <Pause fill="currentColor" size={24} className="md:w-7 md:h-7" /> : <Play fill="currentColor" size={24} className="md:w-7 md:h-7" />}
               </button>
-              
+
+              <button onClick={() => setVolume(volume === 0 ? 1 : 0)} className="flex items-center justify-center text-white/90 transition-colors hover:text-primary md:hidden">
+                {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+              </button>
+               
               <div className="hidden md:flex items-center gap-3 group/volume">
                 <button onClick={() => setVolume(volume === 0 ? 1 : 0)} className="hover:text-primary transition-colors">
                   {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -482,14 +486,14 @@ const CustomPlayer = ({ fileInfo }) => {
               </div>
             </div>
 
-            <div className="text-xs md:text-sm font-bold font-mono opacity-80 bg-white/10 px-2 md:px-3 py-1 rounded-lg border border-white/5 whitespace-nowrap">
+            <div className="whitespace-nowrap rounded-lg border border-white/5 bg-white/10 px-2 py-1 text-xs font-bold font-mono opacity-80 md:px-3 md:text-sm">
               {formatTime(currentTime)} <span className="mx-0.5 md:mx-1 text-white/30">/</span> {formatTime(duration)}
             </div>
           </div>
 
-          <div className="flex items-center justify-between w-full md:w-auto gap-2 md:gap-4 overflow-x-auto pb-1 md:pb-0 scrollbar-hide" dir="rtl">
+          <div className="scrollbar-hide flex w-full flex-wrap items-center justify-end gap-2 pb-1 md:w-auto md:gap-4 md:pb-0" dir="rtl">
             
-            <button onClick={handleReload} title="إعادة معالجة المحاضرة" className="hover:text-primary transition-all hover:scale-110 active:scale-90 mr-auto md:mr-0 shrink-0">
+            <button onClick={handleReload} title="إعادة معالجة المحاضرة" className="mr-auto shrink-0 transition-all hover:scale-110 hover:text-primary active:scale-90 md:mr-0">
                <RotateCcw size={20} className={`md:w-[22px] md:h-[22px] ${isLoading ? 'animate-spin' : ''}`} />
             </button>
 
@@ -500,11 +504,11 @@ const CustomPlayer = ({ fileInfo }) => {
               <Maximize size={20} className="md:w-[22px] md:h-[22px]" />
             </button>
 
-            <button onClick={handleExport} className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg md:rounded-xl text-xs md:text-sm font-bold transition-all active:scale-95 shrink-0">
-              <Download size={14} className="md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">تصدير MP4</span>
+            <button onClick={handleExport} className="flex shrink-0 items-center gap-1 rounded-lg border border-primary/30 bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary transition-all active:scale-95 hover:bg-primary/30 md:gap-2 md:rounded-xl md:px-4 md:py-2 md:text-sm">
+              <Download size={14} className="md:w-[18px] md:h-[18px]" /> <span>تصدير MP4</span>
             </button>
 
-            <div className="flex bg-white/10 p-0.5 md:p-1 rounded-lg md:rounded-xl border border-white/5 shrink-0" dir="ltr">
+            <div className="flex shrink-0 rounded-lg border border-white/5 bg-white/10 p-0.5 md:rounded-xl md:p-1" dir="ltr">
                 {[1, 1.5, 2].map(rate => (
                   <button key={rate} onClick={() => setInternalPlaybackRate(rate)} className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[10px] md:text-xs font-bold transition-all ${playbackRate === rate ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'hover:bg-white/20'}`}>
                     {rate}x
