@@ -41,6 +41,7 @@ export const useAppStore = create((set, get) => ({
   // Persistent Actions
   initPersistentData: async () => {
     try {
+      if (typeof localforage.ready === 'function') await localforage.ready();
       const favs = await localforage.getItem('svu_favorites') || [];
       const hist = await localforage.getItem('svu_history') || {};
       const savedTheme = localStorage.getItem('svu_theme') || 'dark';
@@ -63,13 +64,19 @@ export const useAppStore = create((set, get) => ({
       : [...state.favorites, lectureId];
       
     set({ favorites: newFavs });
-    await localforage.setItem('svu_favorites', newFavs);
+    try {
+      if (typeof localforage.ready === 'function') await localforage.ready();
+      await localforage.setItem('svu_favorites', newFavs);
+    } catch (e) { console.error(e); }
   },
   
   updateHistory: async (lectureId, time) => {
     const state = get();
     const newHistory = { ...state.history, [lectureId]: { lastWatchedTime: time, timestamp: Date.now() } };
     set({ history: newHistory });
-    await localforage.setItem('svu_history', newHistory);
+    try {
+      if (typeof localforage.ready === 'function') await localforage.ready();
+      await localforage.setItem('svu_history', newHistory);
+    } catch (e) { console.error(e); }
   }
 }));

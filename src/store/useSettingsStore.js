@@ -5,14 +5,29 @@ import localforage from 'localforage';
 // Setup localforage as the storage engine for zustand
 const lfStorage = {
   getItem: async (name) => {
-    const value = await localforage.getItem(name);
-    return value || null;
+    try {
+      if (typeof localforage.ready === 'function') await localforage.ready();
+      return await localforage.getItem(name);
+    } catch (e) {
+      console.warn("LocalForage getItem error:", e);
+      return null;
+    }
   },
   setItem: async (name, value) => {
-    await localforage.setItem(name, value);
+    try {
+      if (typeof localforage.ready === 'function') await localforage.ready();
+      await localforage.setItem(name, value);
+    } catch (e) {
+       console.warn("LocalForage setItem error:", e);
+    }
   },
   removeItem: async (name) => {
-    await localforage.removeItem(name);
+    try {
+      if (typeof localforage.ready === 'function') await localforage.ready();
+      await localforage.removeItem(name);
+    } catch (e) {
+       console.warn("LocalForage removeItem error:", e);
+    }
   },
 };
 
