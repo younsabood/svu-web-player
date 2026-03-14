@@ -34,7 +34,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         setTermsList(data);
         
         if (localTerm) {
-            const progData = await fetchApi(`term?val=${localTerm}`);
+            const progData = await fetchApi(`term?val=${encodeURIComponent(localTerm)}`);
             setProgramsList(progData);
         }
       } catch (err) {
@@ -55,7 +55,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
     
     setLoading(true);
     try {
-      const data = await fetchApi(`term?val=${val}`);
+      const data = await fetchApi(`term?val=${encodeURIComponent(val)}`);
       setProgramsList(data);
     } catch(err) { setError(err.message); }
     setLoading(false);
