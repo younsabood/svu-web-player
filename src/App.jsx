@@ -58,17 +58,17 @@ function App() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col overflow-hidden bg-bg-light text-text-light-primary transition-colors duration-500 dark:bg-bg-dark dark:text-text-dark-primary">
+    <div className="flex min-h-[100dvh] flex-col overflow-x-hidden bg-bg-light text-text-light-primary transition-colors duration-500 dark:bg-bg-dark dark:text-text-dark-primary">
       <OnboardingModal />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       
       <Navbar onGoHome={handleGoHome} onOpenSettings={() => setIsSettingsOpen(true)} />
       
-      <div className="relative flex flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <Sidebar onViewChange={handleViewChange} currentView={currentView} />
         
-        <main className="relative w-full flex-1 overflow-y-auto overflow-x-hidden scroll-smooth bg-transparent transition-all duration-500">
-          <div className="relative z-10 mx-auto h-full w-full max-w-[1680px] px-3 pb-24 pt-3 sm:px-4 sm:pb-28 sm:pt-4 lg:px-8 lg:pb-20 lg:pt-6">
+        <main className="relative min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-smooth bg-transparent transition-all duration-500">
+          <div className="relative z-10 mx-auto flex min-h-full w-full max-w-[1680px] flex-col px-3 pb-[calc(env(safe-area-inset-bottom,0px)+5.75rem)] pt-3 sm:px-4 sm:pb-28 sm:pt-4 lg:px-8 lg:pb-20 lg:pt-6">
             <GuideTabs currentView={currentView} onNavigate={handleViewChange} hasSelectedFile={!!selectedFile} />
             {currentView === 'home' && <HomeFeed onVideoSelect={handleVideoSelect} onViewChange={handleViewChange} />}
             {currentView === 'explore' && <Explore onVideoSelect={handleVideoSelect} />}
