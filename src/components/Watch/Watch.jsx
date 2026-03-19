@@ -114,7 +114,7 @@ const Watch = ({ file }) => {
   }
 
   return (
-    <div data-guide-id="watch-player" className="mx-auto flex max-w-7xl flex-col gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500 sm:gap-6 xl:flex-row">
+    <div className="mx-auto flex max-w-7xl flex-col gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500 sm:gap-6 xl:flex-row">
       <div className="flex-1 min-w-0">
         
         {error ? (

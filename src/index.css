@@ -133,13 +133,4 @@
     overscroll-behavior-y: contain;
   }
 
-  .guide-focus {
-    @apply relative ring-1 ring-primary/20 transition-all duration-300;
-    box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.1), 0 12px 32px rgba(15, 23, 42, 0.04);
-    scroll-margin-top: 7rem;
-  }
-
-  .dark .guide-focus {
-    box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.14), 0 16px 36px rgba(0, 0, 0, 0.2);
-  }
 }

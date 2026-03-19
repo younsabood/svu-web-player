@@ -123,11 +123,11 @@ const Explore = ({ onVideoSelect }) => {
 
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 animate-in fade-in duration-500 sm:gap-8">
-      <div data-guide-id="explore-browser">
+      <div>
         <SvuBrowser onVideoSelect={onVideoSelect} />
       </div>
       
-      <div data-guide-id="explore-library" className="space-y-5">
+      <div className="space-y-5">
       <div className="flex flex-col items-start justify-between gap-4 border-b border-border-light pb-4 dark:border-border-dark sm:flex-row sm:items-center">
         
         <div className="scrollbar-hide flex w-full gap-3 overflow-x-auto px-1 sm:w-auto">

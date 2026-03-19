@@ -150,7 +150,7 @@ const SubscriptionsManager = () => {
 
   if (!term || !program) {
     return (
-      <div data-guide-id="classes-builder" className="glass-panel rounded-[1.5rem] p-5 sm:rounded-[2rem] sm:p-8">
+      <div className="glass-panel rounded-[1.5rem] p-5 sm:rounded-[2rem] sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary">

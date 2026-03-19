@@ -42,7 +42,7 @@ const Exports = () => {
   };
 
   return (
-    <div data-guide-id="exports-queue" className="mx-auto max-w-5xl space-y-6 px-1 py-4 animate-in fade-in slide-in-from-bottom-6 duration-700 sm:px-0 md:space-y-8 md:py-10">
+    <div className="mx-auto max-w-5xl space-y-6 px-1 py-4 animate-in fade-in slide-in-from-bottom-6 duration-700 sm:px-0 md:space-y-8 md:py-10">
       
       {/* Dashboard Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

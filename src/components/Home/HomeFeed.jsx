@@ -409,7 +409,7 @@ const HomeFeed = ({ onVideoSelect, onViewChange }) => {
 
   return (
     <div className="mx-auto flex max-w-[1600px] flex-col gap-5 sm:gap-6">
-      <section data-guide-id="home-overview" className="glass-panel relative overflow-hidden rounded-[1.5rem] p-5 sm:rounded-[2rem] sm:p-8">
+      <section className="glass-panel relative overflow-hidden rounded-[1.5rem] p-5 sm:rounded-[2rem] sm:p-8">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(234,51,35,0.10),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(28,61,90,0.10),_transparent_32%)]" />
         <div className="relative z-10">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
