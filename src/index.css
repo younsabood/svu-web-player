@@ -25,6 +25,16 @@
     color-scheme: light dark;
     --primary-rgb: 234, 51, 35;
   }
+
+  html {
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  body,
+  #root {
+    min-height: 100dvh;
+  }
   
   body {
     @apply bg-bg-light text-text-light-primary font-sans antialiased m-0 overflow-x-hidden selection:bg-primary/30 selection:text-primary transition-colors duration-500 ease-in-out;
@@ -32,7 +42,7 @@
       linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(248,250,252,0.96) 100%),
       radial-gradient(circle at top left, rgba(var(--primary-rgb), 0.05) 0px, transparent 28%),
       radial-gradient(circle at top right, rgba(28, 61, 90, 0.04) 0px, transparent 24%);
-    background-attachment: fixed;
+    background-attachment: scroll;
   }
 
   /* Manual Dark Mode Override */
@@ -42,7 +52,7 @@
       linear-gradient(180deg, rgba(9,9,11,0.95) 0%, rgba(9,9,11,1) 100%),
       radial-gradient(circle at top left, rgba(var(--primary-rgb), 0.08) 0px, transparent 30%),
       radial-gradient(circle at bottom right, rgba(28, 61, 90, 0.1) 0px, transparent 28%);
-    background-attachment: fixed;
+    background-attachment: scroll;
   }
 
   /* Dropdown Option Styling Fix for Browsers */
@@ -66,6 +76,13 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-border-dark/30 dark:bg-border-light/20 border-[1px];
+  }
+
+  @media (min-width: 768px) {
+    body,
+    .dark body {
+      background-attachment: fixed;
+    }
   }
 }
 
@@ -109,6 +126,11 @@
 
   .safe-top {
     padding-top: max(env(safe-area-inset-top), 0px);
+  }
+
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   .guide-focus {

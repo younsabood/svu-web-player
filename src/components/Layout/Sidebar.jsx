@@ -49,7 +49,7 @@ const Sidebar = ({ onViewChange, currentView }) => {
       )}
 
       <aside
-        className={`fixed right-0 top-0 z-50 flex h-full flex-col overflow-hidden border-l border-black/5 bg-bg-light/96 shadow-2xl backdrop-blur-md transition-all duration-300 ease-out dark:border-white/8 dark:bg-[#0d0f12]/96 md:relative md:top-auto md:h-auto md:min-h-full md:bg-transparent md:shadow-none md:backdrop-blur-none ${
+        className={`touch-scroll fixed right-0 top-0 z-50 flex h-[100dvh] flex-col overflow-y-auto overflow-x-hidden overscroll-y-contain border-l border-black/5 bg-bg-light/96 shadow-2xl backdrop-blur-md transition-all duration-300 ease-out dark:border-white/8 dark:bg-[#0d0f12]/96 md:sticky md:top-[5rem] md:h-[calc(100dvh-5rem)] md:min-h-0 md:self-start md:bg-transparent md:shadow-none md:backdrop-blur-none ${
           isSidebarOpen
             ? 'w-[min(86vw,22rem)] translate-x-0 px-3 opacity-100 md:w-72 md:px-4'
             : 'w-0 translate-x-full px-0 opacity-0 md:w-0 md:px-0'

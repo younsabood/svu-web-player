@@ -83,8 +83,8 @@ const OnboardingModal = () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#050505] p-0 backdrop-blur-xl md:p-4">
-      <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-none border border-white/10 bg-[#0c0c0c] shadow-2xl shadow-black/60 md:flex-row md:rounded-[2.5rem]">
+    <div className="touch-scroll fixed inset-0 z-[100] overflow-y-auto bg-[#050505] p-0 backdrop-blur-xl md:p-4">
+      <div className="mx-auto flex min-h-[100dvh] max-w-6xl flex-col overflow-hidden rounded-none border border-white/10 bg-[#0c0c0c] shadow-2xl shadow-black/60 md:h-full md:min-h-0 md:flex-row md:rounded-[2.5rem]">
         <div className="relative hidden min-w-0 flex-1 overflow-hidden md:flex">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(234,51,35,0.34),_transparent_32%),radial-gradient(circle_at_bottom_left,_rgba(28,61,90,0.32),_transparent_30%),linear-gradient(160deg,_#111_0%,_#070707_100%)]" />
           <div

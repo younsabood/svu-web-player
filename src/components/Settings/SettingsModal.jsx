@@ -191,7 +191,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        <div className="max-h-none flex-1 overflow-y-auto px-4 py-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:max-h-[calc(92vh-88px)] sm:px-6 sm:py-6">
+        <div className="touch-scroll max-h-none flex-1 overflow-y-auto px-4 py-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:max-h-[calc(92vh-88px)] sm:px-6 sm:py-6">
           {!isHydrated ? (
             <div className="flex min-h-52 items-center justify-center rounded-3xl border border-black/5 bg-black/5 text-sm font-bold text-text-light-secondary dark:border-white/10 dark:bg-white/5 dark:text-text-dark-secondary">
               جاري مزامنة الإعدادات المحلية...

@@ -49,7 +49,7 @@ const GuideTabs = ({ currentView, onNavigate, hasSelectedFile }) => {
   };
 
   return (
-    <section className="sticky top-0 z-30 mb-4 sm:mb-6">
+    <section className="sticky top-[calc(env(safe-area-inset-top,0px)+4.5rem)] z-30 mb-4 sm:top-[calc(env(safe-area-inset-top,0px)+4.9rem)] sm:mb-6">
       <div className="rounded-[1.4rem] border border-black/5 bg-white/92 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.05)] backdrop-blur-md dark:border-white/8 dark:bg-[#111318]/92 dark:shadow-[0_18px_40px_rgba(0,0,0,0.2)] sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
