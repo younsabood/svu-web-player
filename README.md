@@ -19,18 +19,6 @@ The project demonstrates advanced web engineering, including:
 - **Testing:** Comprehensive test suite for critical media processing modules.
 - **Cloud Integration:** Ready for deployment on Cloudflare Pages with `wrangler` support.
 
-## 💻 Local Development
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/YOURInstall dependencies:
-
-Bash
-npm install
-Run the development server:
-
-Bash
-npm run dev
 🤝 Contribution & Support
 As an independent developer in Syria, I believe in the power of open source to change lives.
 
@@ -44,10 +32,3 @@ Developed with passion to support education and development in Syria.
 
 
 ---
-
-### ملاحظات هامة لك:
-1.  **استبدال `YOUR_USERNAME`:** في قسم (Local Development)، تأكد من وضع اسم المستخدم الخاص بك على GitHub بدلاً من الكلمة المكتوبة.
-2.  **لماذا هذا التعديل أفضل؟:** الملف الأصلي الذي أرسلته كان عبارة عن "قالب افتراضي" لـ Vite، أما هذا الملف فيشرح **ماذا يفعل مشروعك فعلياً**، وهو ما يحتاجه المراجعون لتقييم طلبك.
-3.  **قبل الرفع:** تأكد من أنك قمت بتحويل المستودع إلى **Public** كما شرحنا سابقاً، ليتمكنوا من قراءة هذا الملف.
-
-**هل أنت جاهز لرفع هذا الملف والتقديم؟**_USERNAME/svu-web-player.git](https://github.com/YOUR_USERNAME/svu-web-player.git)
