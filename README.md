@@ -1,16 +1,53 @@
-# React + Vite
+# SVU Web Player 🎓🌐
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**A specialized open-source media player designed to empower the academic community at the Syrian Virtual University (SVU).**
 
-Currently, two official plugins are available:
+## 🌟 Vision & Mission
+I am a developer from Syria, a country that has endured years of war and immense challenges. This project is my contribution to rebuilding through technology. **SVU Web Player** aims to bridge the gap in digital education by providing students with a seamless, modern, and cross-platform way to access their lectures.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Key Features
+- **LREC Custom Parsing:** Specialized engine to parse and handle proprietary `.LREC` lecture formats used by SVU.
+- **In-Browser Processing:** High-performance media handling using `FFmpeg.js` directly in the browser.
+- **Canvas Rendering:** Custom video rendering engine using HTML5 Canvas for optimized playback.
+- **Audio Extraction:** Ability to process and extract audio streams for offline listening.
+- **Cross-Platform:** Works on any modern web browser, removing the need for specific desktop software.
 
-## React Compiler
+## 🛠️ Technical Complexity
+The project demonstrates advanced web engineering, including:
+- **Core Engine:** Custom-built parsers and renderers (`LrecParser.js`, `CanvasRenderer.js`).
+- **State Management:** Robust application state handling using modern stores.
+- **Testing:** Comprehensive test suite for critical media processing modules.
+- **Cloud Integration:** Ready for deployment on Cloudflare Pages with `wrangler` support.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 💻 Local Development
 
-## Expanding the ESLint configuration
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/YOURInstall dependencies:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Bash
+npm install
+Run the development server:
+
+Bash
+npm run dev
+🤝 Contribution & Support
+As an independent developer in Syria, I believe in the power of open source to change lives.
+
+If you are a student: I hope this tool helps you in your educational journey.
+
+If you are a developer: Feel free to contribute to the code or suggest features.
+
+Support: If you find this project valuable, please give it a ⭐ on GitHub!
+
+Developed with passion to support education and development in Syria.
+
+
+---
+
+### ملاحظات هامة لك:
+1.  **استبدال `YOUR_USERNAME`:** في قسم (Local Development)، تأكد من وضع اسم المستخدم الخاص بك على GitHub بدلاً من الكلمة المكتوبة.
+2.  **لماذا هذا التعديل أفضل؟:** الملف الأصلي الذي أرسلته كان عبارة عن "قالب افتراضي" لـ Vite، أما هذا الملف فيشرح **ماذا يفعل مشروعك فعلياً**، وهو ما يحتاجه المراجعون لتقييم طلبك.
+3.  **قبل الرفع:** تأكد من أنك قمت بتحويل المستودع إلى **Public** كما شرحنا سابقاً، ليتمكنوا من قراءة هذا الملف.
+
+**هل أنت جاهز لرفع هذا الملف والتقديم؟**_USERNAME/svu-web-player.git](https://github.com/YOUR_USERNAME/svu-web-player.git)
